@@ -1,0 +1,60 @@
+name: women_safety_app
+description: AI-Based Women Safety Navigation & Emergency Response System
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── Firebase ──
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.4.1
+  firebase_database: ^11.2.1
+  firebase_messaging: ^15.2.1
+
+  # Google Maps
+  google_maps_flutter: ^2.9.0
+
+  # HTTP requests to Flask backend
+  http: ^1.2.0
+
+  # GPS location
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
+
+  # Local storage for JWT token
+  shared_preferences: ^2.3.0
+
+  # State management (simple & beginner-friendly)
+  provider: ^6.1.0
+
+  # URL launcher (for phone calls / maps links)
+  url_launcher: ^6.3.0
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SafeHer Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Dashboard</h2>
+    <p>Real-time overview of the Women Safety system</p>
+</div>
+
+<!-- ── Stat Cards Row ── -->
+<div class="row g-3 mb-4" id="stats-row">
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.15);color:var(--red);">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div class="stat-value" id="stat-active-sos">—</div>
+            <div class="stat-label">Active SOS</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(124,58,237,0.15);color:var(--purple);">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div class="stat-value" id="stat-users">—</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(251,191,36,0.15);color:var(--yellow);">
+                <i class="bi bi-journal-text"></i>
+            </div>
+            <div class="stat-value" id="stat-incidents">—</div>
+            <div class="stat-label">Total Incidents</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(52,211,153,0.15);color:var(--green);">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="stat-value" id="stat-recent">—</div>
+            <div class="stat-label">This Week</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(244,114,182,0.15);color:var(--pink);">
+                <i class="bi bi-shield-exclamation"></i>
+            </div>
+            <div class="stat-value" id="stat-sos-total">—</div>
+            <div class="stat-label">Total SOS</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.15);color:var(--red);">
+                <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div class="stat-value" id="stat-zones">—</div>
+            <div class="stat-label">Unsafe Zones</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- ── Active SOS Alerts (Live) ── -->
+    <div class="col-lg-5">
+        <div class="card-dark">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><span class="live-dot"></span> Active SOS Alerts</span>
+                <span class="badge badge-active" id="sos-live-count">Loading...</span>
+            </div>
+            <div class="card-body" id="sos-list" style="max-height:450px;overflow-y:auto;">
+                <div class="text-center text-secondary py-4">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <p class="mt-2 mb-0">Loading SOS alerts from MongoDB...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Recent Incidents ── -->
+    <div class="col-lg-7">
+        <div class="card-dark">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-journal-text me-2"></i>Recent Incidents</span>
+                <a href="/admin/incidents" class="btn btn-outline-light-custom btn-sm">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark-custom mb-0">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>Reporter</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incidents-table">
+                            <tr><td colspan="5" class="text-center text-secondary py-3">Loading from MongoDB...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Load dashboard stats from MongoDB ──
+async function loadStats() {
+    try {
+        const res = await fetch('/admin/api/stats');
+        const data = await res.json();
+        document.getElementById('stat-active-sos').textContent = data.active_sos;
+        document.getElementById('stat-users').textContent = data.total_users;
+        document.getElementById('stat-incidents').textContent = data.total_incidents;
+        document.getElementById('stat-recent').textContent = data.recent_incidents;
+        document.getElementById('stat-sos-total').textContent = data.total_sos;
+        document.getElementById('stat-zones').textContent = data.unsafe_zones;
+    } catch (e) {
+        console.error('Failed to load stats:', e);
+    }
+}
+
+// ── Load active SOS alerts from MongoDB ──
+async function loadActiveSOS() {
+    try {
+        const res = await fetch('/admin/api/sos/active');
+        const alerts = await res.json();
+        const container = document.getElementById('sos-list');
+        const countBadge = document.getElementById('sos-live-count');
+
+        countBadge.textContent = `${alerts.length} active`;
+
+        if (alerts.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-check-circle" style="font-size:32px;color:var(--green)"></i>
+                    <p class="mt-2 mb-0 text-secondary">No active SOS alerts</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = alerts.map(alert => `
+            <div class="sos-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="sos-user">${alert.user_name}</div>
+                        <div class="sos-location">
+                            <i class="bi bi-geo-alt"></i> ${alert.address}
+                        </div>
+                        <div class="sos-time">
+                            <i class="bi bi-clock"></i> ${alert.triggered_at}
+                            &nbsp;|&nbsp;
+                            <i class="bi bi-telephone"></i> ${alert.user_phone}
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-light-custom"
+                            onclick="resolveSOS('${alert.id}')">
+                        <i class="bi bi-check-lg"></i> Resolve
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error('Failed to load SOS:', e);
+    }
+}
+
+// ── Resolve an SOS alert ──
+async function resolveSOS(alertId) {
+    if (!confirm('Resolve this SOS alert?')) return;
+    try {
+        await fetch(`/admin/api/sos/${alertId}/resolve`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: 'Resolved from admin dashboard' }),
+        });
+        loadActiveSOS();
+        loadStats();
+    } catch (e) {
+        alert('Failed to resolve SOS: ' + e.message);
+    }
+}
+
+// ── Load recent incidents from MongoDB ──
+async function loadRecentIncidents() {
+    try {
+        const res = await fetch('/admin/api/incidents');
+        const incidents = await res.json();
+        const tbody = document.getElementById('incidents-table');
+
+        const severityBadge = (s) => {
+            const map = { high: 'badge-danger', medium: 'badge-moderate', low: 'badge-safe' };
+            return `<span class="badge ${map[s] || 'badge-moderate'}">${s}</span>`;
+        };
+        const statusBadge = (s) => {
+            const map = { pending: 'badge-pending', verified: 'badge-safe', dismissed: 'badge-moderate' };
+            return `<span class="badge ${map[s] || 'badge-pending'}">${s}</span>`;
+        };
+
+        tbody.innerHTML = incidents.slice(0, 8).map(inc => `
+            <tr>
+                <td><i class="bi bi-exclamation-circle me-1"></i>${inc.type}</td>
+                <td>${severityBadge(inc.severity)}</td>
+                <td>${inc.reporter_name}</td>
+                <td>${inc.reported_at}</td>
+                <td>${statusBadge(inc.status)}</td>
+            </tr>
+        `).join('');
+
+        if (incidents.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary">No incidents reported yet</td></tr>';
+        }
+    } catch (e) {
+        console.error('Failed to load incidents:', e);
+    }
+}
+
+// ── Initial load + auto-refresh ──
+loadStats();
+loadActiveSOS();
+loadRecentIncidents();
+
+// Refresh SOS alerts every 10 seconds (live polling from MongoDB)
+setInterval(() => { loadActiveSOS(); loadStats(); }, 10000);
+</script>
+{% endblock %}

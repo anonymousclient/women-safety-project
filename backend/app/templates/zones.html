@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Unsafe Zones — SafeHer Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Unsafe Zones</h2>
+    <p>AI-detected and manually reported unsafe zones from MongoDB</p>
+</div>
+
+<div class="row g-4">
+    <!-- ── Zone Cards ── -->
+    <div class="col-lg-12">
+        <div class="card-dark">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-geo-alt-fill me-2 text-danger"></i>All Unsafe Zones</span>
+                <span class="text-secondary" id="zone-count" style="font-size:13px;"></span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark-custom mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Zone Name</th>
+                                <th>Risk Level</th>
+                                <th>Category</th>
+                                <th>Radius</th>
+                                <th>Incidents</th>
+                                <th>Source</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zones-tbody">
+                            <tr><td colspan="8" class="text-center text-secondary py-4">Loading zones from MongoDB...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Risk distribution summary ── -->
+<div class="row g-3 mt-3" id="risk-summary"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadZones() {
+    try {
+        const res = await fetch('/admin/api/zones');
+        const zones = await res.json();
+        const tbody = document.getElementById('zones-tbody');
+        document.getElementById('zone-count').textContent = `${zones.length} zones`;
+
+        const catBadge = (c) => {
+            const m = { critical: 'badge-critical', high: 'badge-high', moderate: 'badge-moderate', low: 'badge-safe' };
+            return `<span class="badge ${m[c]||'badge-moderate'}">${c}</span>`;
+        };
+
+        const srcBadge = (s) => {
+            if (s === 'ai_detected') return '<span class="badge badge-ai"><i class="bi bi-robot me-1"></i>AI</span>';
+            if (s === 'authority_reported') return '<span class="badge badge-moderate">Authority</span>';
+            return '<span class="badge badge-pending">Manual</span>';
+        };
+
+        const riskBar = (level) => {
+            const pct = Math.round(level * 100);
+            let color = 'var(--green)';
+            if (level >= 0.8) color = 'var(--red)';
+            else if (level >= 0.6) color = '#f97316';
+            else if (level >= 0.4) color = 'var(--yellow)';
+
+            return `
+                <div class="d-flex align-items-center">
+                    <div style="width:80px;height:6px;background:var(--bg-surface-light);border-radius:3px;margin-right:8px;">
+                        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
+                    </div>
+                    <span style="font-size:13px;font-weight:600;color:${color}">${pct}%</span>
+                </div>
+            `;
+        };
+
+        if (zones.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-secondary py-4">No unsafe zones detected</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = zones.map((z, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td style="font-weight:600;">${z.name}</td>
+                <td>${riskBar(z.risk_level)}</td>
+                <td>${catBadge(z.risk_category)}</td>
+                <td>${z.radius_meters}m</td>
+                <td>${z.incident_count}</td>
+                <td>${srcBadge(z.source)}</td>
+                <td>
+                    <a href="https://maps.google.com/?q=${z.latitude},${z.longitude}" target="_blank"
+                       style="color:var(--purple-light);text-decoration:none;font-size:13px;">
+                        ${z.latitude.toFixed(4)}, ${z.longitude.toFixed(4)}
+                        <i class="bi bi-box-arrow-up-right ms-1"></i>
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+
+        // Risk distribution summary
+        const counts = { critical: 0, high: 0, moderate: 0, low: 0 };
+        zones.forEach(z => { if (counts[z.risk_category] !== undefined) counts[z.risk_category]++; });
+
+        const summaryColors = { critical: 'var(--red)', high: '#f97316', moderate: 'var(--yellow)', low: 'var(--green)' };
+        const summaryIcons = { critical: 'bi-exclamation-octagon', high: 'bi-exclamation-triangle', moderate: 'bi-exclamation-circle', low: 'bi-check-circle' };
+
+        document.getElementById('risk-summary').innerHTML = Object.entries(counts).map(([cat, count]) => `
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:${summaryColors[cat]}20;color:${summaryColors[cat]}">
+                        <i class="bi ${summaryIcons[cat]}"></i>
+                    </div>
+                    <div class="stat-value" style="color:${summaryColors[cat]}">${count}</div>
+                    <div class="stat-label">${cat.charAt(0).toUpperCase() + cat.slice(1)} Zones</div>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (e) { console.error(e); }
+}
+
+loadZones();
+</script>
+{% endblock %}
