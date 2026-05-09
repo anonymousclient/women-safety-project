@@ -118,6 +118,58 @@ def get_profile(current_user):
         "email": current_user["email"],
         "phone": current_user.get("phone", ""),
         "role": current_user.get("role", "user"),
+        "email_verified": current_user.get("email_verified", False),
+        "phone_verified": current_user.get("phone_verified", False),
         "emergency_contacts": current_user.get("emergency_contacts", []),
         "created_at": current_user["created_at"].isoformat(),
     }), 200
+
+@auth_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    """Trigger OTP for password reset."""
+    from app.services.otp_service import generate_otp, store_otp, send_email_otp_smtp
+    from app.models.user import find_user_by_email
+
+    data = request.get_json()
+    email = data.get("email", "").strip().lower()
+
+    user = find_user_by_email(mongo, email)
+    if not user:
+        # Prevent email enumeration by returning a generic success message
+        return jsonify({"message": "If that email is registered, you will receive an OTP."}), 200
+
+    otp_code = generate_otp()
+    store_otp(mongo, str(user["_id"]), email, otp_code, otp_type="reset")
+    
+    send_email_otp_smtp(email, otp_code)
+    
+    return jsonify({"message": "If that email is registered, you will receive an OTP."}), 200
+
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    """Verify reset OTP and update password."""
+    from app.services.otp_service import verify_otp_code
+    from app.models.user import find_user_by_email, update_user_password
+    import re
+
+    data = request.get_json()
+    email = data.get("email", "").strip().lower()
+    otp = str(data.get("otp", "")).strip()
+    new_password = data.get("new_password", "")
+
+    user = find_user_by_email(mongo, email)
+    if not user:
+        return jsonify({"error": "Invalid request."}), 400
+
+    # Validate new password
+    if len(new_password) < 8 or not re.search(r"[A-Z]", new_password) or not re.search(r"[a-z]", new_password) or not re.search(r"\d", new_password) or not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
+        return jsonify({"error": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character."}), 400
+
+    success, message = verify_otp_code(mongo, str(user["_id"]), otp, otp_type="reset")
+    if not success:
+        return jsonify({"error": message}), 400
+
+    # Update password
+    update_user_password(mongo, str(user["_id"]), new_password)
+
+    return jsonify({"message": "Password reset successfully. You can now login."}), 200

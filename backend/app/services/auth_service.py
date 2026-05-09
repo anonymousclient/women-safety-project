@@ -12,6 +12,8 @@ from flask import current_app
 from app.models.user import create_user, find_user_by_email, verify_password
 
 
+import re
+
 def register_user(db, name, email, password, phone):
     """
     Register a new user.
@@ -19,20 +21,46 @@ def register_user(db, name, email, password, phone):
     Returns:
         (success: bool, message: str, user_id: str or None)
     """
+    # Basic presence validation
+    if not name or not email or not password or not phone:
+        return False, "Name, email, phone, and password are required", None
+
+    # Full Name: Cannot be empty, Min 3 chars, Only alphabets + spaces
+    if not re.match(r"^[A-Za-z\s]{3,}$", name.strip()):
+        return False, "Name must be at least 3 characters and contain only letters and spaces", None
+
+    # Email: Must be valid format
+    if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", email.strip()):
+        return False, "Invalid email format", None
+
+    # Phone: Exactly 10 digits
+    if not re.match(r"^\d{10}$", phone.strip()):
+        return False, "Phone number must be exactly 10 digits", None
+
+    # Password: Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters", None
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter", None
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter", None
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one number", None
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False, "Password must contain at least one special character", None
+
     # Check if email already exists
     existing = find_user_by_email(db, email)
     if existing:
         return False, "Email already registered", None
 
-    # Basic validation
-    if not name or not email or not password:
-        return False, "Name, email, and password are required", None
-
-    if len(password) < 6:
-        return False, "Password must be at least 6 characters", None
+    # Check if phone already exists
+    existing_phone = db.users.find_one({"phone": phone.strip()})
+    if existing_phone:
+        return False, "Phone number already registered", None
 
     try:
-        user_id = create_user(db, name, email, password, phone)
+        user_id = create_user(db, name.strip(), email.strip(), password, phone.strip())
         return True, "Registration successful", str(user_id)
     except Exception as e:
         return False, f"Registration failed: {str(e)}", None

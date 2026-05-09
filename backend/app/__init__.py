@@ -51,6 +51,7 @@ def create_app():
     from app.routes.zones import zones_bp
     from app.routes.admin import admin_bp
     from app.routes.user import user_bp
+    from app.routes.otp import otp_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(sos_bp, url_prefix="/api/sos")
@@ -59,6 +60,7 @@ def create_app():
     app.register_blueprint(zones_bp, url_prefix="/api/zones")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(user_bp, url_prefix="/api/user")
+    app.register_blueprint(otp_bp, url_prefix="/api/otp")
 
     # ── Health check endpoint ──
     @app.route("/")

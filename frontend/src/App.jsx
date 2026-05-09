@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import OTPVerification from './pages/OTPVerification';
+import ForgotPassword from './pages/ForgotPassword';
 import UserDashboard from './pages/user/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import SafeRoute from './pages/user/SafeRoute';
@@ -32,6 +34,8 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login setUser={setUser} />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<OTPVerification />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* User Routes */}
         <Route

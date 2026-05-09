@@ -35,6 +35,8 @@ def create_user(db, name, email, password, phone):
         "password_hash": password_hash,
         "phone": phone,
         "role": "user",  # 'user' or 'admin'
+        "email_verified": False,
+        "phone_verified": False,
         "emergency_contacts": [],
         "fcm_token": None,
         "is_active": True,
@@ -104,3 +106,19 @@ def get_emergency_contacts(db, user_id):
         {"_id": ObjectId(user_id)}, {"emergency_contacts": 1}
     )
     return user.get("emergency_contacts", []) if user else []
+
+def update_user_password(db, user_id, new_password):
+    """Hash and update the user's password."""
+    password_hash = bcrypt.hashpw(
+        new_password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {
+            "$set": {
+                "password_hash": password_hash,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
+    )
