@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Shield, Mail, Phone, ArrowRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import api from '../api/axios';
+import { auth } from '../firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 export default function OTPVerification() {
   const [method, setMethod] = useState('email'); // 'email' or 'phone'
@@ -10,6 +12,8 @@ export default function OTPVerification() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [showSMSInput, setShowSMSInput] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,6 +31,17 @@ export default function OTPVerification() {
     }
     return () => clearInterval(timer);
   }, [email, navigate, cooldown]);
+
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response) => {
+          console.log("Recaptcha verified");
+        }
+      });
+    }
+  };
 
   const sendEmailOTP = async () => {
     setLoading(true);
@@ -50,7 +65,7 @@ export default function OTPVerification() {
     
     try {
       await api.post('/otp/verify-email', { otp });
-      setSuccess('Email verified successfully! You can now login.');
+      setSuccess('Email verified successfully!');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Verification failed. Invalid OTP.');
@@ -59,18 +74,57 @@ export default function OTPVerification() {
     }
   };
 
-  // Mock implementation of Firebase Phone Auth for the UI flow
-  const handleVerifyPhone = async (e) => {
+  const handleSendSMS = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
-    // In a real Firebase setup, you would use signInWithPhoneNumber here
-    // and then send the resulting ID token to /otp/verify-phone
-    setTimeout(() => {
-      setError('Firebase Phone Auth requires a reCaptcha verifier setup. For this demo, please use Email verification.');
+    setSuccess('');
+
+    try {
+      setupRecaptcha();
+      const appVerifier = window.recaptchaVerifier;
+      
+      // Phone must be in E.164 format (e.g., +911234567890)
+      // Assuming Indian number if not specified, or user provides prefix
+      const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+      
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(confirmation);
+      setShowSMSInput(true);
+      setSuccess('SMS code sent to your phone.');
+      setCooldown(60);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to send SMS. Make sure your Phone Number is correct and Firebase is configured.');
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleVerifySMS = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await confirmationResult.confirm(otp);
+      const idToken = await result.user.getIdToken();
+      
+      // Send Firebase token to backend to mark phone as verified
+      await api.post('/otp/verify-phone', { firebase_token: idToken });
+      
+      setSuccess('Phone verified successfully!');
+      setTimeout(() => navigate('/login'), 2000);
+    } catch (err) {
+      console.error(err);
+      setError('Invalid SMS code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!email) return null;
@@ -102,14 +156,14 @@ export default function OTPVerification() {
 
         <div className="flex bg-background p-1 rounded-xl mb-8">
           <button
-            onClick={() => setMethod('email')}
+            onClick={() => { setMethod('email'); setShowSMSInput(false); setOtp(''); }}
             className={`flex-1 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center space-x-2 ${method === 'email' ? 'bg-surface text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
           >
             <Mail className="w-4 h-4" />
             <span>Email</span>
           </button>
           <button
-            onClick={() => setMethod('phone')}
+            onClick={() => { setMethod('phone'); setOtp(''); }}
             className={`flex-1 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center space-x-2 ${method === 'phone' ? 'bg-surface text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
           >
             <Phone className="w-4 h-4" />
@@ -156,26 +210,54 @@ export default function OTPVerification() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleVerifyPhone} className="space-y-4">
+          <form onSubmit={showSMSInput ? handleVerifySMS : handleSendSMS} className="space-y-4">
             <div className="text-center mb-6">
-              <p className="text-sm text-gray-400">We will send an SMS to:</p>
+              <p className="text-sm text-gray-400">{showSMSInput ? "Enter the code sent to:" : "We will send an SMS to:"}</p>
               <p className="font-semibold text-white">{phone}</p>
             </div>
             
-            <div id="recaptcha-container"></div>
+            {showSMSInput ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="6-digit code"
+                  required
+                  maxLength="6"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-background border border-gray-800 rounded-xl py-4 px-4 text-center text-2xl tracking-[0.5em] text-white focus:border-primary outline-none transition"
+                />
+              </div>
+            ) : (
+              <div id="recaptcha-container"></div>
+            )}
             
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (showSMSInput && otp.length !== 6)}
               className="w-full bg-primary hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-lg shadow-primary/20"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                <><span>Send SMS Code via Firebase</span><ArrowRight className="w-5 h-5" /></>
+                <>
+                  <span>{showSMSInput ? "Verify SMS" : "Send SMS Code"}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
               )}
             </button>
+
+            {showSMSInput && (
+              <button 
+                type="button" 
+                onClick={() => setShowSMSInput(false)}
+                className="w-full py-2 text-gray-400 hover:text-white transition text-xs"
+              >
+                Change Method / Resend
+              </button>
+            )}
           </form>
         )}
       </div>
     </div>
   );
 }
+
