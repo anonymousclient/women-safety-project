@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ─── Active SOS List ─────────────────────────────────────────────────────
     async function fetchActiveSOS() {
         try {
+            // /api/admin/sos/active — returns flat array of active alerts
             const alerts = await api.fetch('/admin/sos/active');
 
             if (!Array.isArray(alerts)) {
@@ -55,9 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (alerts.length === 0) {
                 alertsGrid.innerHTML = `
-                    <div class="feature-card" style="text-align:center;color:var(--text-muted);grid-column:1/-1; padding: 3rem;">
-                        <i class="fas fa-check-circle" style="font-size:3rem;margin-bottom:1rem;color:#22c55e;"></i>
-                        <p style="font-size:1.25rem;font-weight:700; color:white;">System All Clear</p>
+                    <div class="feature-card" style="text-align:center;color:var(--text-muted);grid-column:1/-1;">
+                        <i class="fas fa-check-circle" style="font-size:2.5rem;margin-bottom:1rem;color:#22c55e;"></i>
+                        <p style="font-size:1.1rem;font-weight:600;">System All Clear</p>
                         <p style="font-size:0.875rem;">No active SOS alerts at this time.</p>
                     </div>`;
                 return;
@@ -66,74 +67,40 @@ document.addEventListener('DOMContentLoaded', () => {
             alertsGrid.innerHTML = alerts.map(alert => {
                 const time = new Date(alert.triggered_at).toLocaleTimeString();
                 const mapUrl = `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`;
-                
-                const contactsHtml = alert.emergency_contacts && alert.emergency_contacts.length > 0 
-                    ? alert.emergency_contacts.map(c => `
-                        <div style="font-size:0.75rem; background:rgba(255,255,255,0.05); padding:0.6rem; border-radius:0.5rem; border:1px solid rgba(255,255,255,0.05);">
-                            <p style="font-weight:700; color:white;">${escHtml(c.name)} <span style="font-weight:400; color:var(--accent-pink); font-size:0.65rem;">${escHtml(c.relation)}</span></p>
-                            <p style="color:var(--text-muted);"><i class="fas fa-phone"></i> ${escHtml(c.phone)}</p>
-                        </div>
-                    `).join('')
-                    : '<p style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">No emergency contacts found.</p>';
-
                 return `
                 <div class="feature-card" style="
                     border-left:4px solid #ef4444;
-                    animation:slideInRight 0.35s ease-out;
-                    position:relative;
-                    background: rgba(239, 68, 68, 0.03);">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
-                        <h4 style="font-weight:800;color:#ef4444;display:flex;align-items:center;gap:0.5rem; font-size:0.9rem;">
-                            <span style="animation:pulse 1.2s infinite;display:inline-block;">🚨</span>
+                    animation:slideIn 0.35s ease-out;
+                    position:relative;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
+                        <h4 style="font-weight:800;color:#ef4444;display:flex;align-items:center;gap:0.5rem;">
+                            <span style="animation:pulse 1s infinite;display:inline-block;">🚨</span>
                             SOS ACTIVE
                         </h4>
-                        <span style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;background:rgba(0,0,0,0.4);padding:0.25rem 0.6rem;border-radius:0.5rem; border:1px solid var(--border);">${time}</span>
+                        <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${time}</span>
                     </div>
 
-                    <div style="margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
-                        <p style="font-size:0.65rem; color:var(--accent-pink); text-transform:uppercase; font-weight:800; letter-spacing:1.5px; margin-bottom:0.75rem;">User Information</p>
-                        <p style="font-size:1.15rem;font-weight:800;margin-bottom:0.4rem; color:white;">${escHtml(alert.user_name)}</p>
-                        <div style="display:grid; gap:0.4rem;">
-                            <p style="font-size:0.8rem;color:var(--text-muted); display:flex; align-items:center; gap:0.5rem;">
-                                <i class="fas fa-envelope" style="width:14px; color:var(--primary);"></i> ${escHtml(alert.user_email)}
-                            </p>
-                            <p style="font-size:0.8rem;color:var(--text-muted); display:flex; align-items:center; gap:0.5rem;">
-                                <i class="fas fa-phone" style="width:14px; color:var(--primary);"></i> ${escHtml(alert.user_phone)}
-                            </p>
-                            <p style="font-size:0.8rem;color:var(--text-muted); display:flex; align-items:center; gap:0.5rem;">
-                                <i class="fas fa-home" style="width:14px; color:var(--primary);"></i> ${escHtml(alert.user_address || 'Address not set')}
-                            </p>
-                        </div>
-                    </div>
+                    <p style="font-size:1.05rem;font-weight:700;margin-bottom:0.25rem;">${escHtml(alert.user_name)}</p>
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
+                        <i class="fas fa-phone" style="margin-right:4px;"></i>${escHtml(alert.user_phone)}
+                        &nbsp;|&nbsp;
+                        <i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>${escHtml(alert.address || 'Locating...')}
+                    </p>
+                    <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem;">
+                        📍 ${alert.latitude.toFixed(5)}, ${alert.longitude.toFixed(5)}
+                    </p>
 
-                    <div style="margin-bottom:1rem;">
-                        <p style="font-size:0.65rem; color:var(--primary); text-transform:uppercase; font-weight:800; letter-spacing:1.5px; margin-bottom:0.75rem;">Emergency Contacts</p>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-                            ${contactsHtml}
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom:1.25rem; background:rgba(0,0,0,0.3); padding:1rem; border-radius:0.75rem; border:1px solid var(--border);">
-                        <p style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:800; letter-spacing:1.5px; margin-bottom:0.75rem;">Trigger Location</p>
-                        <p style="font-size:0.85rem; font-weight:600; color:white; margin-bottom:0.4rem; line-height:1.4;">
-                            <i class="fas fa-map-marker-alt" style="color:#ef4444; margin-right:4px;"></i> ${escHtml(alert.address || 'Locating...')}
-                        </p>
-                        <p style="font-size:0.7rem;color:var(--text-muted); opacity:0.7;">
-                            GPS: ${alert.latitude.toFixed(6)}, ${alert.longitude.toFixed(6)}
-                        </p>
-                    </div>
-
-                    <div style="display:flex;gap:0.75rem;">
+                    <div style="display:flex;gap:0.5rem;">
                         <a href="${mapUrl}" target="_blank" class="btn btn-primary"
-                            style="flex:1.2;font-size:0.75rem;padding:0.8rem;text-align:center;display:flex;align-items:center;justify-content:center;gap:0.5rem; font-weight:700;">
-                            <i class="fas fa-location-arrow"></i> LIVE MAP
+                            style="flex:1;font-size:0.75rem;padding:0.5rem;text-align:center;">
+                            <i class="fas fa-external-link-alt"></i> Live Map
                         </a>
                         <button
                             onclick="resolveSOS('${alert.id}')"
                             id="resolve-btn-${alert.id}"
                             class="btn btn-outline"
-                            style="flex:1;font-size:0.75rem;padding:0.8rem;color:#22c55e;border-color:rgba(34,197,94,0.4);display:flex;align-items:center;justify-content:center;gap:0.5rem; font-weight:700;">
-                            <i class="fas fa-check-double"></i> RESOLVE
+                            style="flex:1;font-size:0.75rem;padding:0.5rem;color:#22c55e;border-color:#22c55e;">
+                            <i class="fas fa-check"></i> Resolve
                         </button>
                     </div>
                 </div>`;

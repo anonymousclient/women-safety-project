@@ -66,6 +66,10 @@ const api = {
     return user ? JSON.parse(user) : null;
   },
   
+  saveUser(user) {
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+  
   isAuthenticated() {
     return !!localStorage.getItem('token');
   },

@@ -79,7 +79,7 @@ def users_page():
 
 @admin_bp.route("/stats")
 @token_required
-def api_stats(current_user):
+def admin_api_stats(current_user):
     """Dashboard statistics — counts and summaries."""
     total_users = mongo.users.count_documents({})
     active_sos = mongo.sos_alerts.count_documents({"status": "active"})
@@ -109,8 +109,8 @@ def api_stats(current_user):
 
 @admin_bp.route("/sos/active")
 @token_required
-def api_active_sos(current_user):
-    """Get all active SOS alerts with user info and emergency contacts."""
+def admin_api_active_sos(current_user):
+    """Get all active SOS alerts with user info."""
     alerts = get_active_alerts(mongo)
     result = []
     for alert in alerts:
@@ -119,19 +119,18 @@ def api_active_sos(current_user):
             "user_name": alert["user_info"]["name"],
             "user_phone": alert["user_info"].get("phone", "N/A"),
             "user_email": alert["user_info"].get("email", ""),
-            "user_address": alert["user_info"].get("address", "N/A"),
             "latitude": alert["trigger_location"]["coordinates"][1],
             "longitude": alert["trigger_location"]["coordinates"][0],
             "address": alert.get("trigger_address", "Unknown location"),
-            "triggered_at": alert["triggered_at"].isoformat() if hasattr(alert["triggered_at"], "isoformat") else alert["triggered_at"],
-            "emergency_contacts": alert.get("emergency_contacts", [])
+            # isoformat so JS new Date() parses correctly
+            "triggered_at": alert["triggered_at"].isoformat(),
         })
     return jsonify(result)
 
 
 @admin_bp.route("/sos/<alert_id>/resolve", methods=["PUT", "OPTIONS"])
 @token_required
-def api_resolve_sos(current_user, alert_id):
+def admin_api_resolve_sos(current_user, alert_id):
     """Resolve an SOS alert from the admin dashboard."""
     if request.method == "OPTIONS":
         return "", 204
@@ -151,7 +150,7 @@ def api_resolve_sos(current_user, alert_id):
 
 @admin_bp.route("/incidents")
 @token_required
-def api_incidents(current_user):
+def admin_api_incidents(current_user):
     """Get all incidents for the history table."""
     pipeline = [
         {"$sort": {"reported_at": -1}},
@@ -186,7 +185,7 @@ def api_incidents(current_user):
 
 @admin_bp.route("/zones-list")
 @token_required
-def api_zones(current_user):
+def admin_api_zones(current_user):
     """Get all unsafe zones."""
     zones = list(mongo.unsafe_zones.find({"is_active": True}).sort("risk_level", -1))
     result = []
@@ -207,7 +206,7 @@ def api_zones(current_user):
 
 @admin_bp.route("/users-list")
 @token_required
-def api_users(current_user):
+def admin_api_users(current_user):
     """Get all registered users."""
     users = list(
         mongo.users.find(
