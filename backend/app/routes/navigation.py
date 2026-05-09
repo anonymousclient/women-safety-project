@@ -53,9 +53,16 @@ def get_safe_route(current_user):
             "error": "origin_lat, origin_lng, dest_lat, dest_lng are required"
         }), 400
 
-    api_key = current_app.config.get("GOOGLE_MAPS_API_KEY", "")
-
-    if api_key:
+    # ── Handle points provided by frontend (e.g. from OSRM) ──
+    input_points = data.get("points")
+    if input_points:
+        routes = [{
+            "summary": "AI Safe Route",
+            "distance": data.get("distance", "Unknown"),
+            "duration": data.get("duration", "Unknown"),
+            "points": input_points
+        }]
+    elif api_key:
         # ── Fetch real routes from Google Maps ──
         routes = _fetch_google_routes(
             origin_lat, origin_lng, dest_lat, dest_lng, api_key
@@ -124,6 +131,60 @@ def nearby_safe_places(current_user):
         "count": len(places),
         "search_center": {"lat": lat, "lng": lng},
         "search_radius_meters": radius,
+    }), 200
+
+
+@nav_bp.route("/safety-rating", methods=["GET"])
+@token_required
+def get_safety_rating(current_user):
+    """
+    Calculate dynamic safety rating for current location.
+    
+    Query params: lat, lng
+    """
+    lat = request.args.get("lat", type=float)
+    lng = request.args.get("lng", type=float)
+    
+    if lat is None or lng is None:
+        return jsonify({"error": "lat and lng are required"}), 400
+
+    # 1. Check for unsafe zones within 1km
+    unsafe_zones = list(mongo.unsafe_zones.find({
+        "location": {
+            "$near": {
+                "$geometry": {"type": "Point", "coordinates": [lng, lat]},
+                "$maxDistance": 1000
+            }
+        }
+    }))
+    
+    # 2. Check for active SOS alerts within 2km
+    active_sos = list(mongo.sos_alerts.find({
+        "status": "active",
+        "trigger_location": {
+            "$near": {
+                "$geometry": {"type": "Point", "coordinates": [lng, lat]},
+                "$maxDistance": 2000
+            }
+        }
+    }))
+    
+    # Simple heuristic for demo
+    base_score = 95
+    reduction = (len(unsafe_zones) * 10) + (len(active_sos) * 20)
+    final_score = max(5, base_score - reduction)
+    
+    status = "Safe"
+    if final_score < 40:
+        status = "High Alert Zone"
+    elif final_score < 75:
+        status = "Moderate Risk Area"
+        
+    return jsonify({
+        "score": final_score,
+        "status": status,
+        "unsafe_zones_count": len(unsafe_zones),
+        "active_sos_count": len(active_sos)
     }), 200
 
 

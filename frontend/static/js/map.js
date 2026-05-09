@@ -39,7 +39,12 @@ async function initMap() {
 
             // 5. Fetch Real Nearby Safe Places
             fetchNearbySafePlaces(latitude, longitude);
+        }, err => {
+            console.error("Geolocation Error:", err);
+            alert("Location access is required to find safe routes from your current position.");
         });
+    } else {
+        alert("Geolocation is not supported by your browser.");
     }
 }
 
@@ -65,7 +70,7 @@ async function fetchUnsafeZones() {
 
 async function fetchNearbySafePlaces(lat, lng) {
     try {
-        const response = await api.fetch(`/navigation/nearby-safe-places?lat=${lat}&lng=${lng}`);
+        const response = await api.fetch(`/nearby-safe-places?lat=${lat}&lng=${lng}`);
         if (response.places) {
             const policeIcon = L.divIcon({
                 html: '<i class="fas fa-shield-alt" style="color: #4fc3f7; font-size: 1.5rem;"></i>',
@@ -91,60 +96,84 @@ async function fetchNearbySafePlaces(lat, lng) {
 
 async function findSafeRoute() {
     const destInput = document.getElementById('destination').value;
+    const findBtn = document.getElementById('find-route');
     const routeInfo = document.getElementById('route-info');
     
     if (!destInput) return alert("Please enter a destination.");
 
+    // Loading State
+    findBtn.disabled = true;
+    findBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    routeInfo.classList.add('hidden');
+
     try {
-        // Step 1: Geocode Destination
+        console.log("🔍 Geocoding destination:", destInput);
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destInput)}`);
         const geoData = await geoRes.json();
-        if (geoData.length === 0) return alert("Destination not found.");
+        if (geoData.length === 0) throw new Error("Destination not found.");
 
         const destLat = parseFloat(geoData[0].lat);
         const destLng = parseFloat(geoData[0].lon);
 
         navigator.geolocation.getCurrentPosition(async (position) => {
-            const startLat = position.coords.latitude;
-            const startLng = position.coords.longitude;
+            try {
+                const startLat = position.coords.latitude;
+                const startLng = position.coords.longitude;
 
-            // Step 2: Get Route Points from OSRM
-            const osrmUrl = `https://router.project-osrm.org/route/v1/walking/${startLng},${startLat};${destLng},${destLat}?overview=full&geometries=geojson`;
-            const osrmRes = await fetch(osrmUrl);
-            const osrmData = await osrmRes.json();
-            
-            if (osrmData.routes.length === 0) return alert("No route found.");
-            
-            const routePoints = osrmData.routes[0].geometry.coordinates; // [[lng, lat], ...]
+                console.log("🛤️ Fetching OSRM route...");
+                const osrmUrl = `https://router.project-osrm.org/route/v1/walking/${startLng},${startLat};${destLng},${destLat}?overview=full&geometries=geojson`;
+                const osrmRes = await fetch(osrmUrl);
+                const osrmData = await osrmRes.json();
+                
+                if (!osrmData.routes || osrmData.routes.length === 0) throw new Error("No walking route found.");
+                
+                const routePoints = osrmData.routes[0].geometry.coordinates;
 
-            // Step 3: Get Safety Score from Backend
-            const safetyRes = await api.fetch('/navigation/get-safe-route', {
-                method: 'POST',
-                body: JSON.stringify({
-                    origin_lat: startLat, origin_lng: startLng,
-                    dest_lat: destLat, dest_lng: destLng,
-                    // Send OSRM points for scoring
-                    points: routePoints 
-                })
-            });
+                console.log("🛡️ Requesting AI safety score...");
+                const safetyRes = await api.fetch('/get-safe-route', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        origin_lat: startLat, origin_lng: startLng,
+                        dest_lat: destLat, dest_lng: destLng,
+                        points: routePoints 
+                    })
+                });
 
-            if (safetyRes.routes && safetyRes.routes.length > 0) {
-                const bestRoute = safetyRes.routes[0];
-                renderRoute(bestRoute);
-                updateSafetyUI(bestRoute);
+                console.log("Safety Response:", safetyRes);
+
+                if (safetyRes.routes && safetyRes.routes.length > 0) {
+                    const bestRoute = safetyRes.routes[0];
+                    renderRoute(bestRoute);
+                    updateSafetyUI(bestRoute);
+                } else {
+                    throw new Error("Unable to calculate safety score for this route.");
+                }
+            } catch (innerErr) {
+                console.error("Inner Route Error:", innerErr);
+                alert(innerErr.message);
+            } finally {
+                findBtn.disabled = false;
+                findBtn.innerHTML = '<i class="fas fa-directions"></i> Find Safe Route';
             }
+        }, err => {
+            console.error("Geolocation Callback Error:", err);
+            alert("Location access is required.");
+            findBtn.disabled = false;
+            findBtn.innerHTML = '<i class="fas fa-directions"></i> Find Safe Route';
         });
     } catch (err) {
-        console.error("Route Error:", err);
+        console.error("Geocoding Error:", err);
+        alert(err.message);
+        findBtn.disabled = false;
+        findBtn.innerHTML = '<i class="fas fa-directions"></i> Find Safe Route';
     }
 }
 
 function renderRoute(route) {
-    if (routingControl) map.removeControl(routingControl);
+    if (routingControl) map.removeLayer(routingControl);
 
     // Convert [lng, lat] to [lat, lng] for Leaflet
     const latLngs = route.points.map(p => [p[1], p[0]]);
-    
     const color = route.risk_score < 0.4 ? '#22c55e' : (route.risk_score < 0.7 ? '#f59e0b' : '#ef4444');
     
     routingControl = L.polyline(latLngs, {
@@ -168,19 +197,20 @@ function updateSafetyUI(route) {
     
     const score = ((1 - route.risk_score) * 100).toFixed(0);
     scoreText.textContent = `Route Safety Score: ${score}%`;
-    
     riskBadge.textContent = route.risk_label.toUpperCase();
     
-    // UI Colors
     const color = route.risk_score < 0.4 ? '#22c55e' : (route.risk_score < 0.7 ? '#f59e0b' : '#ef4444');
     riskBadge.style.backgroundColor = `${color}22`;
     riskBadge.style.color = color;
     routeInfo.style.borderLeftColor = color;
 
-    // Breakdown Bars
-    incidentBar.style.width = `${route.risk_breakdown.incident_density * 100}%`;
+    // Fixed breakdown logic
+    const incidents = route.risk_breakdown.incident_density || 0;
+    const time = route.risk_breakdown.time_factor || 0;
+
+    incidentBar.style.width = `${(incidents * 100).toFixed(0)}%`;
     incidentBar.style.backgroundColor = color;
-    timeBar.style.width = `${route.risk_breakdown.time_factor * 100}%`;
+    timeBar.style.width = `${(time * 100).toFixed(0)}%`;
     timeBar.style.backgroundColor = color;
     
     routeInfo.scrollIntoView({ behavior: 'smooth' });
