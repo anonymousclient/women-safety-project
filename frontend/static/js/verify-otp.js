@@ -86,20 +86,20 @@ emailForm.addEventListener('submit', async (e) => {
 });
 
 // SMS Logic (Firebase Compat)
-// Note: User must fill these in firebase.js or we define them here.
-// For simplicity in vanilla, I'll assume they defined a global config or I'll provide one placeholder.
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
+    apiKey: "AIzaSyBNLozlSTDVPqWZsnnuKD18Q3ZATJQLuA8",
     authDomain: "woman-safety-e2386.firebaseapp.com",
     projectId: "woman-safety-e2386",
-    storageBucket: "woman-safety-e2386.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    storageBucket: "woman-safety-e2386.firebasestorage.app",
+    messagingSenderId: "659760041751",
+    appId: "1:659760041751:web:94df64d3137c130a98b152",
+    measurementId: "G-NR92RFCFTE"
 };
 
 // Only init if not already init
 if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
 }
 
 let confirmationResult = null;
