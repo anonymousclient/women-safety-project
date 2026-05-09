@@ -8,7 +8,8 @@ This is the central setup file. It:
 4. Registers all route blueprints
 """
 
-from flask import Flask
+from flask import Flask, send_from_directory
+import os
 from flask_cors import CORS
 from pymongo import MongoClient
 
@@ -22,7 +23,15 @@ def create_app():
     """Create and configure the Flask application."""
     global mongo
 
-    app = Flask(__name__)
+    # ── Point Flask to the frontend directory ──
+    # This allows Flask to serve the static HTML/JS/CSS files in production
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    frontend_dir = os.path.join(root_dir, 'frontend')
+    
+    app = Flask(__name__, 
+                static_folder=frontend_dir, 
+                static_url_path='')
+    
     app.config.from_object(Config)
 
     # ── Enable CORS for all API routes ──
@@ -62,8 +71,13 @@ def create_app():
     app.register_blueprint(user_bp, url_prefix="/api/user")
     app.register_blueprint(otp_bp, url_prefix="/api/otp")
 
-    # ── Health check endpoint ──
+    # ── Serve Frontend ──
     @app.route("/")
+    def serve_index():
+        return send_from_directory(app.static_folder, 'index.html')
+
+    # ── Health check endpoint ──
+    @app.route("/health")
     def health():
         return {"status": "ok", "message": "Women Safety API is running"}, 200
 

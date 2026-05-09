@@ -1,6 +1,6 @@
 # 🛡️ SafeHer: Women's Safety Ecosystem
 
-**SafeHer** is a comprehensive safety solution designed to empower women through technology. It integrates a Flask-based intelligent backend with a high-performance Flutter mobile application to provide real-time protection, community-driven safety insights, and immediate emergency response.
+**SafeHer** is a comprehensive safety solution designed to empower women through technology. It integrates a Flask-based intelligent backend with a professional web portal and a high-performance Flutter mobile application to provide real-time protection and immediate emergency response.
 
 ---
 
@@ -17,16 +17,16 @@
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Framework**: Flask (Python)
+### Backend & Web Portal
+- **Framework**: Flask (Python 3.11+)
+- **WSGI Server**: Gunicorn (for production)
 - **Database**: MongoDB Atlas (NoSQL)
 - **Realtime**: Firebase Admin SDK
 - **AI/ML**: Scikit-learn (Incident risk prediction)
-- **Deployment**: Ready for Render/Gunicorn
+- **Deployment**: Render / Docker Ready
 
 ### Mobile
 - **Framework**: Flutter (Dart)
-- **State Management**: Provider / BLoC
 - **Maps**: Google Maps SDK
 - **Backend Sync**: REST API + Firebase Realtime DB
 
@@ -35,18 +35,39 @@
 ## 📂 Project Structure
 
 ```text
-├── backend/            # Flask API server & Admin Dashboard
+├── backend/            # Flask API server & Logic
 │   ├── app/            # Application logic, routes, and models
-│   ├── templates/      # Admin dashboard UI (Jinja2)
 │   └── run.py          # Entry point
-├── mobile/             # Flutter mobile application
+├── frontend/           # Web Portal (Served by Flask in production)
 ├── scripts/            # Database seeding and utility scripts
-└── docs/               # Technical documentation
+├── requirements.txt    # Production dependencies
+├── Procfile            # Render deployment config
+└── runtime.txt         # Python version config
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ Deployment to Render
+
+### 1. Environment Variables
+Add the following variables in the Render Dashboard:
+
+| Key | Value |
+| :--- | :--- |
+| `SECRET_KEY` | Your random secret string |
+| `MONGO_URI` | Your MongoDB Atlas connection string |
+| `MAIL_USERNAME` | Your email address |
+| `MAIL_PASSWORD` | Your email app password |
+| `FIREBASE_CREDENTIALS` | `firebase-credentials.json` |
+| `GOOGLE_MAPS_API_KEY` | Your Google Maps API key |
+
+### 2. Build & Start Commands
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `gunicorn --chdir backend run:app`
+
+---
+
+## ⚙️ Local Setup
 
 ### 🐍 Backend Setup
 1. **Navigate to backend**:
@@ -57,37 +78,16 @@
    ```bash
    python -m venv venv
    source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+   pip install -r ../requirements.txt
    ```
 3. **Configuration**:
    - Create a `.env` file based on `.env.example`.
-   - Add your `MONGO_URI`, `FIREBASE_CREDENTIALS`, and `OPENROUTER_API_KEY`.
-4. **Seed Database**:
-   ```bash
-   python -m app.seed_data
-   ```
-5. **Run Server**:
+4. **Run Server**:
    ```bash
    python run.py
-   ```
-
-### 📱 Mobile Setup
-1. **Navigate to mobile**:
-   ```bash
-   cd mobile
-   ```
-2. **Install dependencies**:
-   ```bash
-   flutter pub get
-   ```
-3. **Configure Firebase**:
-   - Add `google-services.json` (Android) and `GoogleService-Info.plist` (iOS).
-4. **Run App**:
-   ```bash
-   flutter run
    ```
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.

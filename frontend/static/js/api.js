@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = window.location.origin + '/api';
 
 const api = {
   async request(endpoint, options = {}) {
