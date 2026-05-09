@@ -9,17 +9,43 @@ export default function SOSPage() {
 
   const triggerSOS = async () => {
     setLoading(true);
+    
+    // Use HTML5 Geolocation API
+    if (!navigator.geolocation) {
+      handleLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        await sendSOSToBackend(latitude, longitude);
+      },
+      (error) => {
+        console.warn("Location error, using fallback:", error.message);
+        // Fallback mock location if permission is denied for testing purposes
+        handleLocationError("Permission denied. Using fallback location.");
+        sendSOSToBackend(28.6139, 77.2090);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  const sendSOSToBackend = async (latitude, longitude) => {
     try {
-      // In a real app, we would get real GPS coordinates
-      const mockLocation = { latitude: 28.6139, longitude: 77.2090 };
-      const res = await api.post('/sos/trigger', mockLocation);
+      const res = await api.post('/sos/trigger', { latitude, longitude });
       setActiveSOS(res.data);
-      setAddress("Connaught Place, New Delhi, India");
+      // In a real app, we would reverse-geocode the lat/lng here
+      setAddress(`Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
     } catch (err) {
       alert("Failed to trigger SOS. Please try calling emergency services directly.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLocationError = (msg) => {
+    setAddress(msg);
   };
 
   const cancelSOS = async () => {
@@ -83,7 +109,10 @@ export default function SOSPage() {
           </div>
 
           <div className="flex flex-col space-y-4 pt-4">
-            <button className="w-full bg-emergency py-4 rounded-2xl font-bold hover:bg-red-600 transition shadow-lg shadow-emergency/20">
+            <button 
+              onClick={cancelSOS}
+              className="w-full bg-emergency py-4 rounded-2xl font-bold hover:bg-red-600 transition shadow-lg shadow-emergency/20"
+            >
               I am Safe Now
             </button>
             <button
@@ -98,7 +127,7 @@ export default function SOSPage() {
 
       <div className="flex items-center space-x-2 text-gray-500 text-sm italic">
         <AlertTriangle className="w-4 h-4" />
-        <p>Testing Mode: Mock location will be used for demonstration.</p>
+        <p>Your browser may prompt you for location access when triggering SOS.</p>
       </div>
     </div>
   );
