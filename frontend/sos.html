@@ -88,8 +88,13 @@
                     <p id="sos-coords" style="font-weight: 600;">Detecting GPS...</p>
                 </div>
 
-                <button id="sos-cancel" class="btn btn-outline" style="padding: 1rem 3rem; border-radius: 0.75rem; color: var(--text-muted);">
-                    Cancel Alert
+                <div id="cancel-timer-box" style="margin-bottom: 2rem;">
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Time remaining to cancel accidental trigger:</p>
+                    <p id="cancel-timer" style="font-size: 2rem; font-weight: 800; color: white;">15s</p>
+                </div>
+
+                <button id="sos-cancel" class="btn btn-outline" style="padding: 1rem 3rem; border-radius: 0.75rem; color: var(--emergency); border-color: var(--emergency);">
+                    <i class="fas fa-times-circle"></i> Cancel SOS
                 </button>
             </div>
         </main>

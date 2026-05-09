@@ -30,12 +30,13 @@ def create_sos_alert(db, user_id, longitude, latitude, address=""):
             "coordinates": [longitude, latitude],
         },
         "trigger_address": address,
-        "status": "active",  # active → resolved / false_alarm
+        "status": "active",  # active → resolved / cancelled
         "contacts_notified": [],
         "resolved_by": None,
         "resolution_notes": "",
         "triggered_at": datetime.now(timezone.utc),
         "resolved_at": None,
+        "cancelled_at": None,
     }
 
     result = db.sos_alerts.insert_one(alert_doc)
@@ -81,6 +82,19 @@ def resolve_alert(db, alert_id, resolved_by, notes=""):
                 "resolved_by": ObjectId(resolved_by),
                 "resolution_notes": notes,
                 "resolved_at": datetime.now(timezone.utc),
+            }
+        },
+    )
+
+
+def cancel_alert(db, alert_id):
+    """Mark an SOS alert as cancelled by the user."""
+    db.sos_alerts.update_one(
+        {"_id": ObjectId(alert_id)},
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancelled_at": datetime.now(timezone.utc),
             }
         },
     )

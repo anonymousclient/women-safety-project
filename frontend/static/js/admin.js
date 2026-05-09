@@ -1,6 +1,6 @@
 /**
  * Admin Dashboard Logic
- * Real-time SOS monitoring and system analytics
+ * Real-time SOS monitoring, lifecycle management, and system analytics.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,8 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const alertsGrid = document.getElementById('alerts-grid');
     const statUsers = document.getElementById('stat-users');
-    const statSos = document.getElementById('stat-sos');
-    const statRoutes = document.getElementById('stat-routes');
+    const statSosActive = document.getElementById('stat-sos-active');
+    const statSosResolved = document.getElementById('stat-sos-resolved');
+    const statSosCancelled = document.getElementById('stat-sos-cancelled');
 
     let activeAlertsCount = 0;
     const alertSound = new Audio('https://www.soundjay.com/buttons/beep-07.mp3');
@@ -19,8 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await api.fetch('/admin/stats');
             if (response) {
                 statUsers.textContent = response.total_users || 0;
-                statSos.textContent = response.total_sos || 0;
-                statRoutes.textContent = response.unsafe_zones || 0;
+                statSosActive.textContent = response.active_sos || 0;
+                statSosResolved.textContent = response.resolved_sos || 0;
+                statSosCancelled.textContent = response.cancelled_sos || 0;
             }
         } catch (e) {
             console.error("Failed to fetch admin stats:", e);
@@ -43,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="feature-card" style="border-left: 4px solid #ef4444; position: relative; animation: slideIn 0.3s ease-out;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
                             <h4 style="font-weight: 700; color: #ef4444;">🚨 SOS ACTIVE</h4>
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">${alert.triggered_at}</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">${new Date(alert.triggered_at).toLocaleTimeString()}</span>
                         </div>
                         <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">${alert.user_name}</p>
                         <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
@@ -53,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <a href="https://www.google.com/maps?q=${alert.latitude},${alert.longitude}" target="_blank" class="btn btn-primary" style="flex: 1; font-size: 0.75rem; padding: 0.5rem; text-align: center;">
                                 <i class="fas fa-external-link-alt"></i> View Live
                             </a>
-                            <button onclick="resolveSOS('${alert.id}')" class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.5rem;">
+                            <button onclick="resolveSOS('${alert.id}')" class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.5rem; color: #22c55e; border-color: #22c55e;">
                                 <i class="fas fa-check"></i> Resolve
                             </button>
                         </div>
@@ -75,16 +77,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.resolveSOS = async (alertId) => {
-        if (!confirm('Are you sure you want to resolve this SOS alert?')) return;
+        const notes = prompt('Enter resolution notes (optional):', 'Resolved by admin from console');
+        if (notes === null) return; // User cancelled prompt
+
         try {
-            await api.fetch(`/admin/sos/${alertId}/resolve`, {
+            const response = await api.fetch(`/sos/${alertId}/resolve`, {
                 method: 'PUT',
-                body: JSON.stringify({ notes: "Resolved by admin from console" })
+                body: JSON.stringify({ notes: notes })
             });
-            fetchActiveSOS();
-            fetchStats();
+            
+            if (response.message) {
+                alert("SOS Alert Resolved Successfully.");
+                fetchActiveSOS();
+                fetchStats();
+            }
         } catch (e) {
-            alert("Error resolving SOS.");
+            console.error("Error resolving SOS:", e);
+            alert("Error resolving SOS: " + e.message);
         }
     };
 
@@ -92,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchStats();
     fetchActiveSOS();
     setInterval(fetchActiveSOS, 5000); // 5s for SOS
-    setInterval(fetchStats, 30000);   // 30s for stats
+    setInterval(fetchStats, 10000);   // 10s for stats (faster for demo)
 
     document.getElementById('logout-btn').addEventListener('click', () => api.logout());
 });

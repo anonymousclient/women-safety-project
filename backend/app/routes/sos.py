@@ -3,8 +3,10 @@ SOS Emergency Routes.
 
 Handles:
     POST /api/sos/trigger         — Trigger an SOS emergency alert
-    PUT  /api/sos/<id>/resolve    — Resolve an active SOS alert
+    POST /api/sos/cancel          — Cancel a recently triggered SOS (by user)
+    PUT  /api/sos/<id>/resolve    — Resolve an active SOS alert (by admin)
     GET  /api/sos/active          — Get all active SOS alerts (admin)
+    GET  /api/sos/status          — Check current active SOS status for user
     GET  /api/sos/history         — Get current user's SOS history
 """
 
@@ -15,6 +17,7 @@ from app.models.sos_alert import (
     create_sos_alert,
     get_active_alerts,
     resolve_alert,
+    cancel_alert,
     add_notified_contact,
     get_user_sos_history,
 )
@@ -25,6 +28,7 @@ from app.services.firebase_service import (
     clear_live_location,
 )
 from app.services.sms_service import notify_emergency_contacts
+from bson import ObjectId
 
 sos_bp = Blueprint("sos", __name__)
 
@@ -32,21 +36,6 @@ sos_bp = Blueprint("sos", __name__)
 @sos_bp.route("/trigger", methods=["POST"])
 @token_required
 def trigger_sos(current_user):
-    """
-    Trigger an SOS emergency alert.
-
-    This is the most critical endpoint in the system. When called, it:
-    1. Creates an SOS alert record in MongoDB
-    2. Sends SMS to all emergency contacts
-    3. Sends a push notification to all admins via Firebase
-
-    Expected JSON body:
-    {
-        "latitude": 28.6139,
-        "longitude": 77.2090,
-        "address": "Connaught Place, New Delhi" (optional)
-    }
-    """
     data = request.get_json()
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
@@ -61,25 +50,25 @@ def trigger_sos(current_user):
     user_id = str(current_user["_id"])
     user_name = current_user["name"]
 
-    # ── Step 1: Create the SOS alert in MongoDB ──
+    # 1. Create the SOS alert in MongoDB
     alert_id = create_sos_alert(mongo, user_id, longitude, latitude, address)
 
-    # ── Step 2: Notify emergency contacts via SMS ──
+    # 2. Notify emergency contacts via SMS
     contact_results = notify_emergency_contacts(
         mongo, user_id, user_name, latitude, longitude
     )
 
-    # ── Step 3: Record which contacts were notified ──
+    # 3. Record which contacts were notified
     for contact in contact_results:
         add_notified_contact(
             mongo, alert_id,
             contact["name"], contact["phone"], contact["sms_sent"]
         )
 
-    # ── Step 4: Push notifications (FCM) ──
+    # 4. Push notifications (FCM)
     send_sos_notification(user_name, address)
 
-    # ── Step 5: Write SOS alert to Firebase Realtime DB (instant dashboard update) ──
+    # 5. Write SOS alert to Firebase Realtime DB
     write_sos_to_realtime_db(
         alert_id, user_id, user_name, latitude, longitude, address
     )
@@ -87,79 +76,79 @@ def trigger_sos(current_user):
     return jsonify({
         "message": "SOS alert triggered successfully",
         "alert_id": alert_id,
-        "contacts_notified": len(contact_results),
-        "details": contact_results,
+        "contacts_notified": len(contact_results)
     }), 201
 
 
-@sos_bp.route("/<alert_id>/resolve", methods=["PUT"])
+@sos_bp.route("/cancel", methods=["POST"])
+@token_required
+def cancel_sos(current_user):
+    """Allow user to cancel an accidental SOS trigger."""
+    user_id = str(current_user["_id"])
+    
+    # Find the most recent active SOS for this user
+    active_alert = mongo.sos_alerts.find_one({
+        "user_id": ObjectId(user_id),
+        "status": "active"
+    }, sort=[("triggered_at", -1)])
+
+    if not active_alert:
+        return jsonify({"error": "No active SOS alert found to cancel"}), 404
+
+    alert_id = str(active_alert["_id"])
+    cancel_alert(mongo, alert_id)
+    
+    # Sync with Firebase
+    resolve_sos_in_realtime_db(alert_id)
+    clear_live_location(user_id)
+
+    return jsonify({"message": "SOS alert cancelled by user"}), 200
+
+
+@sos_bp.route("/<alert_id>/resolve", methods=["PUT", "OPTIONS"])
 @token_required
 def resolve_sos(current_user, alert_id):
-    """
-    Resolve an active SOS alert.
-    Typically called by an admin after verifying the user is safe.
+    if request.method == "OPTIONS":
+        return "", 204
 
-    Expected JSON body:
-    {
-        "notes": "User confirmed safe via phone call" (optional)
-    }
-    """
     data = request.get_json() or {}
-    notes = data.get("notes", "")
+    notes = data.get("notes", "Resolved by admin")
 
-    resolve_alert(mongo, alert_id, str(current_user["_id"]), notes)
+    # Find the alert to get user_id for clearing live location
+    alert = mongo.sos_alerts.find_one({"_id": ObjectId(alert_id)})
+    if alert:
+        resolve_alert(mongo, alert_id, str(current_user["_id"]), notes)
+        resolve_sos_in_realtime_db(alert_id)
+        clear_live_location(str(alert["user_id"]))
+        return jsonify({"message": "SOS resolved"}), 200
+    
+    return jsonify({"error": "Alert not found"}), 404
 
-    # Also resolve in Firebase Realtime DB + clear live location
-    resolve_sos_in_realtime_db(alert_id)
-    # Clear any live location tracking for this user
-    clear_live_location(str(current_user["_id"]))
 
-    return jsonify({"message": "SOS resolved"}), 200
-
-
-@sos_bp.route("/nearby-alerts", methods=["GET"])
+@sos_bp.route("/status", methods=["GET"])
 @token_required
-def get_nearby_alerts(current_user):
-    """Get active SOS alerts within 2km of the user."""
-    lat = request.args.get("lat", type=float)
-    lng = request.args.get("lng", type=float)
+def get_sos_status(current_user):
+    """Check if the user has an active SOS."""
+    user_id = str(current_user["_id"])
+    active_alert = mongo.sos_alerts.find_one({
+        "user_id": ObjectId(user_id),
+        "status": "active"
+    })
     
-    if lat is None or lng is None:
-        return jsonify({"error": "lat and lng are required"}), 400
-
-    alerts = list(mongo.sos_alerts.find({
-        "status": "active",
-        "trigger_location": {
-            "$near": {
-                "$geometry": {"type": "Point", "coordinates": [lng, lat]},
-                "$maxDistance": 2000
-            }
-        }
-    }).sort("triggered_at", -1))
+    if active_alert:
+        return jsonify({
+            "is_active": True,
+            "alert_id": str(active_alert["_id"]),
+            "triggered_at": active_alert["triggered_at"].isoformat()
+        }), 200
     
-    result = []
-    for a in alerts:
-        result.append({
-            "id": str(a["_id"]),
-            "type": "Emergency SOS",
-            "time": a["triggered_at"].isoformat(),
-            "address": a.get("trigger_address", "Nearby location"),
-            "severity": "critical"
-        })
-        
-    return jsonify(result), 200
+    return jsonify({"is_active": False}), 200
 
 
 @sos_bp.route("/active", methods=["GET"])
 @token_required
 def active_alerts(current_user):
-    """
-    Get all currently active SOS alerts.
-    Intended for admin dashboard use.
-    """
     alerts = get_active_alerts(mongo)
-
-    # Convert ObjectId and datetime fields to strings for JSON serialization
     result = []
     for alert in alerts:
         result.append({
@@ -167,20 +156,18 @@ def active_alerts(current_user):
             "user_name": alert["user_info"]["name"],
             "user_phone": alert["user_info"]["phone"],
             "user_email": alert["user_info"]["email"],
-            "location": alert["trigger_location"]["coordinates"],
+            "latitude": alert["trigger_location"]["coordinates"][1],
+            "longitude": alert["trigger_location"]["coordinates"][0],
             "address": alert.get("trigger_address", ""),
             "triggered_at": alert["triggered_at"].isoformat(),
         })
-
-    return jsonify({"active_alerts": result, "count": len(result)}), 200
+    return jsonify(result), 200
 
 
 @sos_bp.route("/history", methods=["GET"])
 @token_required
 def sos_history(current_user):
-    """Get the current user's past SOS alerts."""
     alerts = get_user_sos_history(mongo, str(current_user["_id"]))
-
     result = []
     for alert in alerts:
         result.append({
@@ -189,10 +176,7 @@ def sos_history(current_user):
             "address": alert.get("trigger_address", ""),
             "status": alert["status"],
             "triggered_at": alert["triggered_at"].isoformat(),
-            "resolved_at": (
-                alert["resolved_at"].isoformat()
-                if alert.get("resolved_at") else None
-            ),
+            "resolved_at": alert["resolved_at"].isoformat() if alert.get("resolved_at") else None,
+            "cancelled_at": alert["cancelled_at"].isoformat() if alert.get("cancelled_at") else None,
         })
-
     return jsonify({"sos_history": result}), 200

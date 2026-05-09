@@ -83,6 +83,8 @@ def api_stats(current_user):
     """Dashboard statistics — counts and summaries."""
     total_users = mongo.users.count_documents({})
     active_sos = mongo.sos_alerts.count_documents({"status": "active"})
+    resolved_sos = mongo.sos_alerts.count_documents({"status": "resolved"})
+    cancelled_sos = mongo.sos_alerts.count_documents({"status": "cancelled"})
     total_sos = mongo.sos_alerts.count_documents({})
     total_incidents = mongo.incidents.count_documents({})
     unsafe_zones = mongo.unsafe_zones.count_documents({"is_active": True})
@@ -96,6 +98,8 @@ def api_stats(current_user):
     return jsonify({
         "total_users": total_users,
         "active_sos": active_sos,
+        "resolved_sos": resolved_sos,
+        "cancelled_sos": cancelled_sos,
         "total_sos": total_sos,
         "total_incidents": total_incidents,
         "recent_incidents": recent_incidents,

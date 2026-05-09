@@ -53,6 +53,8 @@ def get_safe_route(current_user):
             "error": "origin_lat, origin_lng, dest_lat, dest_lng are required"
         }), 400
 
+    api_key = current_app.config.get("GOOGLE_MAPS_API_KEY", "")
+
     # ── Handle points provided by frontend (e.g. from OSRM) ──
     input_points = data.get("points")
     if input_points:
