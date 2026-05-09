@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SafeHer</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="auth-container">
+        <a href="index.html" class="logo" style="margin-bottom: 2.5rem;">
+            <i class="fas fa-shield-alt"></i>
+            <span>SafeHer</span>
+        </a>
+
+        <div class="auth-card">
+            <h2>Welcome Back</h2>
+            <p>Please enter your details to sign in.</p>
+
+            <div id="error-msg" class="error-msg"></div>
+
+            <div class="flex" style="background: var(--bg); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 2rem;">
+                <button id="user-tab" class="btn" style="flex: 1; background: var(--surface);">User Login</button>
+                <button id="admin-tab" class="btn" style="flex: 1; color: var(--text-muted);">Admin Login</button>
+            </div>
+
+            <form id="login-form" class="space-y-6">
+                <div class="form-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" name="email" placeholder="Email Address" required>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <div style="text-align: right; margin-top: -1rem; margin-bottom: 1.5rem;">
+                    <a href="forgot-password.html" style="font-size: 0.875rem; color: var(--text-muted);">Forgot Password?</a>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn-submit" style="background-color: var(--primary);">
+                    <span>Sign In</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="register.html">Create one</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/api.js"></script>
+    <script src="static/js/login.js"></script>
+</body>
+</html>

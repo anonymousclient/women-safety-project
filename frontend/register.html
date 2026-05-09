@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - SafeHer</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="auth-container">
+        <a href="index.html" class="logo" style="margin-bottom: 2.5rem;">
+            <i class="fas fa-shield-alt"></i>
+            <span>SafeHer</span>
+        </a>
+
+        <div class="auth-card">
+            <h2>Create Account</h2>
+            <p>Join the community and stay safe.</p>
+
+            <div id="error-msg" class="error-msg"></div>
+
+            <form id="register-form" class="space-y-4">
+                <div class="form-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="name" placeholder="Full Name" required>
+                    <p class="field-error" id="name-error" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" name="email" placeholder="Email Address" required>
+                    <p class="field-error" id="email-error" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-phone"></i>
+                    <input type="tel" name="phone" placeholder="Phone Number (10 digits)" required>
+                    <p class="field-error" id="phone-error" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" placeholder="Create Password" required>
+                    <p class="field-error" id="password-error" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="confirmPassword" placeholder="Confirm Password" required>
+                    <p class="field-error" id="confirmPassword-error" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn-submit">
+                    <span>Sign Up & Verify</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a href="login.html">Sign in</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/api.js"></script>
+    <script src="static/js/register.js"></script>
+</body>
+</html>

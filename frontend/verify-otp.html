@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Account - SafeHer</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="auth-container">
+        <a href="index.html" class="logo" style="margin-bottom: 2.5rem;">
+            <i class="fas fa-shield-alt"></i>
+            <span>SafeHer</span>
+        </a>
+
+        <div class="auth-card">
+            <h2>Verify Account</h2>
+            <p>Choose a method to verify your identity.</p>
+
+            <div id="error-msg" class="error-msg"></div>
+            <div id="success-msg" class="error-msg" style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.5); color: #22c55e;"></div>
+
+            <div class="flex" style="background: var(--bg); padding: 0.25rem; border-radius: 0.75rem; margin-bottom: 2rem;">
+                <button id="email-tab" class="btn" style="flex: 1; background: var(--surface);">Email</button>
+                <button id="phone-tab" class="btn" style="flex: 1; color: var(--text-muted);">SMS</button>
+            </div>
+
+            <!-- Email Form -->
+            <form id="email-form" class="space-y-4">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <p style="font-size: 0.875rem; color: var(--text-muted);">We will send a code to:</p>
+                    <p id="display-email" style="font-weight: 600;"></p>
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" id="email-otp" placeholder="Enter 6-digit code" required maxLength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; padding-left: 1rem;">
+                </div>
+
+                <button type="submit" id="email-verify-btn" class="btn-submit" style="background-color: var(--primary);" disabled>
+                    <span>Verify Code</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                
+                <button type="button" id="resend-email-btn" style="width: 100%; background: none; color: var(--text-muted); font-size: 0.875rem; margin-top: 1rem;">Send Code</button>
+            </form>
+
+            <!-- SMS Form (Hidden by default) -->
+            <form id="sms-form" class="space-y-4 hidden">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <p style="font-size: 0.875rem; color: var(--text-muted);">We will send an SMS to:</p>
+                    <p id="display-phone" style="font-weight: 600;"></p>
+                </div>
+                
+                <div id="sms-input-group" class="hidden">
+                    <div class="form-group">
+                        <input type="text" id="sms-otp" placeholder="6-digit code" required maxLength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; padding-left: 1rem;">
+                    </div>
+                </div>
+
+                <div id="recaptcha-container"></div>
+
+                <button type="submit" id="sms-btn" class="btn-submit" style="background-color: var(--primary);">
+                    <span>Send SMS Code</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Wrong info? <a href="login.html">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Compatibility) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
+    <script src="static/js/api.js"></script>
+    <script src="static/js/verify-otp.js"></script>
+</body>
+</html>

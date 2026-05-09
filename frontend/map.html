@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Route - SafeHer</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        #map {
+            width: 100%;
+            height: calc(100vh - 12rem);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .map-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .map-controls input {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            color: white;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo" style="margin-bottom: 2rem;">
+                <i class="fas fa-shield-alt"></i>
+                <span>SafeHer</span>
+            </div>
+            <nav style="display: flex; flex-direction: column; flex: 1;">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="map.html" class="nav-item active">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Safe Route</span>
+                </a>
+                <a href="sos.html" class="nav-item">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>SOS Alert</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+                
+                <div style="margin-top: auto;">
+                    <button id="logout-btn" class="nav-item" style="width: 100%; border: none; background: none; cursor: pointer;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 2rem;">
+                <h1 style="font-size: 1.5rem; font-weight: 800;">Safe <span class="gradient-text">Navigation</span></h1>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">Find the safest route to your destination.</p>
+            </header>
+
+            <div class="map-controls">
+                <input type="text" id="destination" placeholder="Enter destination...">
+                <button id="find-route" class="btn btn-primary">Find Safe Route</button>
+            </div>
+
+            <div id="map"></div>
+            
+            <div id="route-info" class="feature-card hidden" style="margin-top: 1.5rem; border-left: 4px solid #22c55e;">
+                <p style="font-weight: 700; color: #22c55e;">Safe Route Found</p>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">This route avoids 3 reported unsafe zones in your path.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao&libraries=places"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/map.js"></script>
+</body>
+</html>
