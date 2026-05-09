@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     api.checkAuth();
 
     const alertsGrid      = document.getElementById('alerts-grid');
-    const statUsers       = document.getElementById('stat-users');
     const statSosActive   = document.getElementById('stat-sos-active');
     const statSosResolved = document.getElementById('stat-sos-resolved');
     const statSosCancelled= document.getElementById('stat-sos-cancelled');
@@ -28,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await api.fetch('/admin/stats');
             if (!data) return;
-            if (statUsers)        statUsers.textContent        = data.total_users    || 0;
             if (statSosActive)    statSosActive.textContent    = data.active_sos     || 0;
             if (statSosResolved)  statSosResolved.textContent  = data.resolved_sos   || 0;
             if (statSosCancelled) statSosCancelled.textContent = data.cancelled_sos  || 0;

@@ -55,22 +55,8 @@ def sos_page():
     return render_template("sos.html", page="sos")
 
 
-@admin_bp.route("/incidents-page")
-def incidents_page():
-    """Incident history table page."""
-    return render_template("incidents.html", page="incidents")
 
 
-@admin_bp.route("/zones-page")
-def zones_page():
-    """Unsafe zones map page."""
-    return render_template("zones.html", page="zones")
-
-
-@admin_bp.route("/users-page")
-def users_page():
-    """Registered users list."""
-    return render_template("users.html", page="users")
 
 
 # ────────────────────────────────────────────────
@@ -81,29 +67,16 @@ def users_page():
 @token_required
 def admin_api_stats(current_user):
     """Dashboard statistics — counts and summaries."""
-    total_users = mongo.users.count_documents({})
     active_sos = mongo.sos_alerts.count_documents({"status": "active"})
     resolved_sos = mongo.sos_alerts.count_documents({"status": "resolved"})
     cancelled_sos = mongo.sos_alerts.count_documents({"status": "cancelled"})
     total_sos = mongo.sos_alerts.count_documents({})
-    total_incidents = mongo.incidents.count_documents({})
-    unsafe_zones = mongo.unsafe_zones.count_documents({"is_active": True})
-
-    # Incidents in the last 7 days
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    recent_incidents = mongo.incidents.count_documents(
-        {"reported_at": {"$gte": week_ago}}
-    )
 
     return jsonify({
-        "total_users": total_users,
         "active_sos": active_sos,
         "resolved_sos": resolved_sos,
         "cancelled_sos": cancelled_sos,
         "total_sos": total_sos,
-        "total_incidents": total_incidents,
-        "recent_incidents": recent_incidents,
-        "unsafe_zones": unsafe_zones,
     })
 
 
@@ -148,87 +121,5 @@ def admin_api_resolve_sos(current_user, alert_id):
     return jsonify({"message": "SOS resolved"})
 
 
-@admin_bp.route("/incidents")
-@token_required
-def admin_api_incidents(current_user):
-    """Get all incidents for the history table."""
-    pipeline = [
-        {"$sort": {"reported_at": -1}},
-        {"$limit": 100},
-        {
-            "$lookup": {
-                "from": "users",
-                "localField": "reported_by",
-                "foreignField": "_id",
-                "as": "reporter",
-            }
-        },
-        {"$unwind": {"path": "$reporter", "preserveNullAndEmptyArrays": True}},
-    ]
-    incidents = list(mongo.incidents.aggregate(pipeline))
-
-    result = []
-    for inc in incidents:
-        result.append({
-            "id": str(inc["_id"]),
-            "type": inc.get("type", "unknown"),
-            "description": inc.get("description", ""),
-            "severity": inc.get("severity", "medium"),
-            "status": inc.get("status", "pending"),
-            "latitude": inc["location"]["coordinates"][1],
-            "longitude": inc["location"]["coordinates"][0],
-            "reporter_name": inc.get("reporter", {}).get("name", "Anonymous"),
-            "reported_at": inc["reported_at"].strftime("%Y-%m-%d %H:%M:%S"),
-        })
-    return jsonify(result)
 
 
-@admin_bp.route("/zones-list")
-@token_required
-def admin_api_zones(current_user):
-    """Get all unsafe zones."""
-    zones = list(mongo.unsafe_zones.find({"is_active": True}).sort("risk_level", -1))
-    result = []
-    for zone in zones:
-        result.append({
-            "id": str(zone["_id"]),
-            "name": zone.get("name", "Unknown"),
-            "latitude": zone["location"]["coordinates"][1],
-            "longitude": zone["location"]["coordinates"][0],
-            "radius_meters": zone.get("radius_meters", 500),
-            "risk_level": zone.get("risk_level", 0),
-            "risk_category": zone.get("risk_category", "unknown"),
-            "incident_count": zone.get("incident_count", 0),
-            "source": zone.get("source", "manual"),
-        })
-    return jsonify(result)
-
-
-@admin_bp.route("/users-list")
-@token_required
-def admin_api_users(current_user):
-    """Get all registered users."""
-    users = list(
-        mongo.users.find(
-            {},
-            {
-                "password_hash": 0,  # Never send passwords
-                "fcm_token": 0,
-            },
-        ).sort("created_at", -1).limit(100)
-    )
-    result = []
-    for user in users:
-        result.append({
-            "id": str(user["_id"]),
-            "name": user.get("name", ""),
-            "email": user.get("email", ""),
-            "phone": user.get("phone", ""),
-            "role": user.get("role", "user"),
-            "is_active": user.get("is_active", True),
-            "emergency_contacts": len(user.get("emergency_contacts", [])),
-            "created_at": user.get("created_at", "").strftime("%Y-%m-%d")
-            if user.get("created_at")
-            else "N/A",
-        })
-    return jsonify(result)
