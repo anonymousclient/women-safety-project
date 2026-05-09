@@ -21,7 +21,9 @@ from app.models.incident import create_incident
 def seed_database():
     """Insert mock data into MongoDB."""
     client = MongoClient(Config.MONGO_URI)
-    db = client.get_default_database() or client["women_safety"]
+    # Extract database name from URI or use fallback
+    db_name = Config.MONGO_URI.split("/")[-1].split("?")[0] or "women_safety"
+    db = client[db_name]
 
     print("Seeding database...")
 

@@ -7,10 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        emergency: "#ff4d4d",
-        safety: "#4CAF50",
-        background: "#1a1a1a",
-        surface: "#2d2d2d",
+        primary: "#7c3aed",
+        secondary: "#f472b6",
+        emergency: "#ef4444",
+        success: "#34d399",
+        warning: "#fbbf24",
+        background: "#0d0d1a",
+        surface: "#1a1a2e",
+        "surface-light": "#252547",
       }
     },
   },

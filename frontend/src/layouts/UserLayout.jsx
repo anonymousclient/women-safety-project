@@ -23,8 +23,8 @@ export default function UserLayout({ children, user }) {
       {/* Sidebar */}
       <aside className="w-64 bg-surface border-r border-gray-800 flex flex-col">
         <div className="p-6 flex items-center space-x-2">
-          <Shield className="w-8 h-8 text-emergency" />
-          <span className="text-xl font-bold">SafeHer</span>
+          <Shield className="w-8 h-8 text-primary" />
+          <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">SafeHer</span>
         </div>
 
         <nav className="flex-1 px-4 mt-4 space-y-2">
@@ -34,8 +34,8 @@ export default function UserLayout({ children, user }) {
               to={item.path}
               className={`flex items-center space-x-3 p-4 rounded-xl transition ${
                 location.pathname === item.path
-                  ? 'bg-emergency text-white shadow-lg shadow-emergency/20'
-                  : 'text-gray-400 hover:bg-background hover:text-white'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                  : 'text-gray-400 hover:bg-surface-light hover:text-white'
               }`}
             >
               <item.icon className="w-5 h-5" />

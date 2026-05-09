@@ -40,7 +40,7 @@ export default function Login({ setUser }) {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center px-6">
       <Link to="/" className="flex items-center space-x-2 mb-10 group">
-        <Shield className="w-10 h-10 text-emergency group-hover:scale-110 transition" />
+        <Shield className="w-10 h-10 text-primary group-hover:scale-110 transition" />
         <span className="text-3xl font-bold tracking-tight text-white">SafeHer</span>
       </Link>
 
@@ -96,7 +96,7 @@ export default function Login({ setUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emergency hover:bg-red-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-lg shadow-emergency/20"
+            className="w-full bg-primary hover:bg-purple-600 text-white font-bold py-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-lg shadow-primary/20"
           >
             {loading ? 'Signing in...' : (
               <>

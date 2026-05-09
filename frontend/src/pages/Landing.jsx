@@ -17,20 +17,20 @@ export default function Landing() {
         </div>
         <div className="space-x-4">
           <Link to="/login" className="px-4 py-2 rounded-lg hover:bg-surface transition">Login</Link>
-          <Link to="/register" className="px-6 py-2 bg-emergency rounded-lg font-semibold hover:bg-red-600 transition shadow-lg shadow-emergency/20">Get Started</Link>
+          <Link to="/register" className="px-6 py-2 bg-gradient-to-r from-primary to-secondary rounded-lg font-semibold hover:opacity-90 transition shadow-lg shadow-primary/20">Get Started</Link>
         </div>
       </nav>
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-6 pt-20 pb-32 flex flex-col items-center text-center">
         <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">
-          Your Safety, <span className="text-emergency">Our Priority.</span>
+          Your Safety, <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Our Priority.</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-2xl mb-10">
           AI-powered navigation and real-time emergency response system designed to empower women and ensure safe travels everywhere.
         </p>
         <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-          <Link to="/register" className="px-10 py-4 bg-emergency rounded-xl text-xl font-bold hover:bg-red-600 transition shadow-xl shadow-emergency/30">
+          <Link to="/register" className="px-10 py-4 bg-gradient-to-r from-primary to-secondary rounded-xl text-xl font-bold hover:opacity-90 transition shadow-xl shadow-primary/30">
             Join SafeHer Today
           </Link>
           <button className="px-10 py-4 border border-surface rounded-xl text-xl font-bold hover:bg-surface transition">

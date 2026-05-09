@@ -76,7 +76,7 @@ def users_page():
 # API Endpoints (called by dashboard JavaScript)
 # ────────────────────────────────────────────────
 
-@admin_bp.route("/api/stats")
+@admin_bp.route("/stats")
 def api_stats():
     """Dashboard statistics — counts and summaries."""
     total_users = mongo.users.count_documents({})
@@ -101,7 +101,7 @@ def api_stats():
     })
 
 
-@admin_bp.route("/api/sos/active")
+@admin_bp.route("/sos/active")
 def api_active_sos():
     """Get all active SOS alerts with user info."""
     alerts = get_active_alerts(mongo)
@@ -120,7 +120,7 @@ def api_active_sos():
     return jsonify(result)
 
 
-@admin_bp.route("/api/sos/<alert_id>/resolve", methods=["PUT"])
+@admin_bp.route("/sos/<alert_id>/resolve", methods=["PUT"])
 def api_resolve_sos(alert_id):
     """Resolve an SOS alert from the admin dashboard."""
     data = request.get_json() or {}
@@ -136,7 +136,7 @@ def api_resolve_sos(alert_id):
     return jsonify({"message": "SOS resolved"})
 
 
-@admin_bp.route("/api/incidents")
+@admin_bp.route("/incidents")
 def api_incidents():
     """Get all incidents for the history table."""
     pipeline = [
@@ -170,7 +170,7 @@ def api_incidents():
     return jsonify(result)
 
 
-@admin_bp.route("/api/zones")
+@admin_bp.route("/zones")
 def api_zones():
     """Get all unsafe zones."""
     zones = list(mongo.unsafe_zones.find({"is_active": True}).sort("risk_level", -1))
@@ -190,7 +190,7 @@ def api_zones():
     return jsonify(result)
 
 
-@admin_bp.route("/api/users")
+@admin_bp.route("/users")
 def api_users():
     """Get all registered users."""
     users = list(

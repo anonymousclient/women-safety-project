@@ -57,7 +57,7 @@ def create_app():
     app.register_blueprint(nav_bp, url_prefix="/api")
     app.register_blueprint(location_bp, url_prefix="/api")
     app.register_blueprint(zones_bp, url_prefix="/api/zones")
-    app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(user_bp, url_prefix="/api/user")
 
     # ── Health check endpoint ──

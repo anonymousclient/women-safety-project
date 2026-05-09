@@ -28,15 +28,15 @@ export default function UserDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Card */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-emergency to-red-600 rounded-3xl p-8 text-white shadow-2xl shadow-emergency/20">
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary to-secondary rounded-3xl p-8 text-white shadow-2xl shadow-primary/20">
         <div className="relative z-10">
           <h2 className="text-3xl font-bold mb-2">Welcome to SafeHer</h2>
-          <p className="text-red-100 max-w-md opacity-90">Your safety is our priority. Use the buttons below for immediate assistance or to plan a safe route.</p>
+          <p className="text-purple-100 max-w-md opacity-90">Your safety is our priority. Use the buttons below for immediate assistance or to plan a safe route.</p>
           <div className="flex mt-6 space-x-4">
-            <button className="bg-white text-emergency px-6 py-2 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg">
+            <button className="bg-white text-primary px-6 py-2 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg">
               Trigger SOS Now
             </button>
-            <button className="bg-red-800/20 border border-white/20 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-800/40 transition">
+            <button className="bg-primary-800/20 border border-white/20 text-white px-6 py-2 rounded-xl font-bold hover:bg-primary-800/40 transition">
               Share Live Location
             </button>
           </div>
