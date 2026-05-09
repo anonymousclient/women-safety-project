@@ -51,6 +51,10 @@ const api = {
     return this.request(endpoint, { method: 'DELETE' });
   },
   
+  async fetch(endpoint, options = {}) {
+    return this.request(endpoint, options);
+  },
+  
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

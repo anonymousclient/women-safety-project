@@ -1,88 +1,100 @@
+/**
+ * SOS Emergency Feature Logic
+ * Handles triggering, background flashing, siren audio, and location updates
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
     api.checkAuth();
-    
+
     const triggerBtn = document.getElementById('sos-trigger');
     const cancelBtn = document.getElementById('sos-cancel');
     const idleView = document.getElementById('sos-idle-view');
     const activeView = document.getElementById('sos-active-view');
     const statusText = document.getElementById('sos-status');
     const coordsText = document.getElementById('sos-coords');
-    const logoutBtn = document.getElementById('logout-btn');
+    const mainContainer = document.getElementById('main-container');
+    const siren = document.getElementById('siren-audio');
 
-    logoutBtn.addEventListener('click', () => api.logout());
-
-    let watchId = null;
-    let currentAlertId = null;
-
-    const startTracking = () => {
-        if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
-            return;
-        }
-
-        watchId = navigator.geolocation.watchPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                coordsText.textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-                
-                // Update live location in backend
-                try {
-                    await api.post('/location/update', { latitude, longitude });
-                } catch (err) {
-                    console.error("Failed to update live location:", err);
-                }
-            },
-            (error) => {
-                console.error("Geolocation error:", error);
-                coordsText.textContent = "Location access denied";
-            },
-            { enableHighAccuracy: true }
-        );
-    };
+    let sosId = null;
+    let locationInterval = null;
 
     triggerBtn.addEventListener('click', async () => {
-        triggerBtn.disabled = true;
-        triggerBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+        if (!confirm('Are you sure you want to trigger an SOS alert? This will notify all emergency contacts.')) return;
+
+        // 1. Enter SOS State
+        idleView.classList.add('hidden');
+        activeView.classList.remove('hidden');
+        mainContainer.classList.add('emergency-flashing');
         
         try {
-            // Get current position first for the initial alert
+            siren.play();
+        } catch (e) {
+            console.warn("Audio autoplay blocked");
+        }
+
+        // 2. Get Initial Location
+        if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const { latitude, longitude } = position.coords;
-                
-                const res = await api.post('/sos/trigger', { latitude, longitude });
-                currentAlertId = res.alert_id;
-                
-                // Switch Views
-                idleView.classList.add('hidden');
-                activeView.classList.remove('hidden');
-                
-                startTracking();
+                coordsText.textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+
+                // 3. Trigger Backend SOS
+                const response = await api.fetch('/sos/trigger', {
+                    method: 'POST',
+                    body: JSON.stringify({ latitude, longitude })
+                });
+
+                if (response.alert_id) {
+                    sosId = response.alert_id;
+                    statusText.textContent = 'Help is on the way! Your location is being tracked.';
+                    
+                    // 4. Start Real-time Location Updates
+                    startLiveTracking(sosId);
+                }
             }, (err) => {
-                alert("Please enable location access to trigger SOS.");
-                triggerBtn.disabled = false;
-                triggerBtn.textContent = 'SOS';
+                alert("Please enable GPS for SOS to work properly.");
+                resetSOS();
             });
-        } catch (err) {
-            alert("Failed to trigger SOS. Please try again.");
-            triggerBtn.disabled = false;
-            triggerBtn.textContent = 'SOS';
         }
     });
 
     cancelBtn.addEventListener('click', async () => {
-        if (!confirm("Are you sure you want to cancel the emergency alert?")) return;
-        
-        try {
-            await api.post('/sos/cancel', { alert_id: currentAlertId });
-            
-            if (watchId) navigator.geolocation.clearWatch(watchId);
-            
-            activeView.classList.add('hidden');
-            idleView.classList.remove('hidden');
-            triggerBtn.disabled = false;
-            triggerBtn.textContent = 'SOS';
-        } catch (err) {
-            alert("Failed to cancel alert. Please refresh.");
+        if (sosId) {
+            await api.fetch(`/sos/${sosId}/resolve`, {
+                method: 'PUT',
+                body: JSON.stringify({ notes: "User cancelled alert from frontend." })
+            });
         }
+        resetSOS();
     });
+
+    function startLiveTracking(alertId) {
+        // Update location every 5 seconds
+        locationInterval = setInterval(() => {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                coordsText.textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+
+                await api.fetch('/location/update-location', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        latitude,
+                        longitude,
+                        sos_alert_id: alertId
+                    })
+                });
+            });
+        }, 5000);
+    }
+
+    function resetSOS() {
+        sosId = null;
+        if (locationInterval) clearInterval(locationInterval);
+        idleView.classList.remove('hidden');
+        activeView.classList.add('hidden');
+        mainContainer.classList.remove('emergency-flashing');
+        siren.pause();
+        siren.currentTime = 0;
+        statusText.textContent = 'Broadcasting your location to emergency responders...';
+    }
 });

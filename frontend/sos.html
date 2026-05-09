@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
+    <div class="app-container" id="main-container">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo" style="margin-bottom: 2rem;">
@@ -59,11 +59,17 @@
 
         <!-- Main Content -->
         <main class="main-content flex flex-col items-center justify-center text-center">
+            <audio id="siren-audio" loop>
+                <source src="https://www.soundjay.com/buttons/beep-01a.mp3" type="audio/mpeg">
+            </audio>
+            
             <div id="sos-idle-view">
                 <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem;">Emergency SOS</h1>
                 <p style="color: var(--text-muted); margin-bottom: 4rem; max-width: 32rem;">Press the button below to immediately notify emergency contacts and authorities with your real-time location.</p>
                 
-                <button id="sos-trigger" class="sos-btn">SOS</button>
+                <div class="flex justify-center">
+                    <button id="sos-trigger" class="sos-btn">SOS</button>
+                </div>
                 
                 <p style="margin-top: 4rem; color: var(--text-muted); font-size: 0.875rem;">
                     <i class="fas fa-info-circle"></i> Your location is automatically shared when SOS is triggered.
