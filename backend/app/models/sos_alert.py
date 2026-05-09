@@ -44,7 +44,7 @@ def create_sos_alert(db, user_id, longitude, latitude, address=""):
 
 
 def get_active_alerts(db):
-    """Get all currently active SOS alerts with user info."""
+    """Get all currently active SOS alerts with user info and emergency contacts."""
     pipeline = [
         {"$match": {"status": "active"}},
         {"$sort": {"triggered_at": -1}},
@@ -58,6 +58,14 @@ def get_active_alerts(db):
         },
         {"$unwind": "$user_info"},
         {
+            "$lookup": {
+                "from": "trusted_contacts",
+                "localField": "user_id",
+                "foreignField": "user_id",
+                "as": "emergency_contacts"
+            }
+        },
+        {
             "$project": {
                 "trigger_location": 1,
                 "trigger_address": 1,
@@ -66,6 +74,8 @@ def get_active_alerts(db):
                 "user_info.name": 1,
                 "user_info.phone": 1,
                 "user_info.email": 1,
+                "user_info.address": 1,
+                "emergency_contacts": 1
             }
         },
     ]

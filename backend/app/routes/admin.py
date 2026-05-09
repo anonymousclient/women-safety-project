@@ -110,19 +110,21 @@ def api_stats(current_user):
 @admin_bp.route("/sos/active")
 @token_required
 def api_active_sos(current_user):
-    """Get all active SOS alerts with user info."""
+    """Get all active SOS alerts with user info and emergency contacts."""
     alerts = get_active_alerts(mongo)
     result = []
     for alert in alerts:
         result.append({
             "id": str(alert["_id"]),
             "user_name": alert["user_info"]["name"],
-            "user_phone": alert["user_info"]["phone"],
-            "user_email": alert["user_info"]["email"],
+            "user_phone": alert["user_info"].get("phone", "N/A"),
+            "user_email": alert["user_info"].get("email", ""),
+            "user_address": alert["user_info"].get("address", "N/A"),
             "latitude": alert["trigger_location"]["coordinates"][1],
             "longitude": alert["trigger_location"]["coordinates"][0],
-            "address": alert.get("trigger_address", "Unknown"),
-            "triggered_at": alert["triggered_at"].strftime("%Y-%m-%d %H:%M:%S"),
+            "address": alert.get("trigger_address", "Unknown location"),
+            "triggered_at": alert["triggered_at"].isoformat() if hasattr(alert["triggered_at"], "isoformat") else alert["triggered_at"],
+            "emergency_contacts": alert.get("emergency_contacts", [])
         })
     return jsonify(result)
 
@@ -131,16 +133,19 @@ def api_active_sos(current_user):
 @token_required
 def api_resolve_sos(current_user, alert_id):
     """Resolve an SOS alert from the admin dashboard."""
+    if request.method == "OPTIONS":
+        return "", 204
+
     data = request.get_json() or {}
     notes = data.get("notes", "Resolved by admin")
 
-    # Find the alert to get user_id for clearing live location
     alert = mongo.sos_alerts.find_one({"_id": ObjectId(alert_id)})
-    if alert:
-        resolve_alert(mongo, alert_id, str(alert["user_id"]), notes)
-        resolve_sos_in_realtime_db(alert_id)
-        clear_live_location(str(alert["user_id"]))
+    if not alert:
+        return jsonify({"error": "Alert not found"}), 404
 
+    resolve_alert(mongo, alert_id, str(alert["user_id"]), notes)
+    resolve_sos_in_realtime_db(alert_id)
+    clear_live_location(str(alert["user_id"]))
     return jsonify({"message": "SOS resolved"})
 
 

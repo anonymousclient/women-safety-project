@@ -88,24 +88,24 @@ def update_fcm_token(db, user_id, fcm_token):
     )
 
 
-def add_emergency_contact(db, user_id, name, phone, relation):
-    """Add an emergency contact to the user's list."""
-    contact = {"name": name, "phone": phone, "relation": relation}
-    db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {
-            "$push": {"emergency_contacts": contact},
-            "$set": {"updated_at": datetime.now(timezone.utc)},
-        },
-    )
+def add_emergency_contact(db, user_id, name, phone, relation, address=""):
+    """Add an emergency contact to the trusted_contacts collection."""
+    contact = {
+        "user_id": ObjectId(user_id),
+        "name": name,
+        "phone": phone,
+        "relation": relation,
+        "address": address,
+        "created_at": datetime.now(timezone.utc)
+    }
+    db.trusted_contacts.insert_one(contact)
 
 
 def get_emergency_contacts(db, user_id):
-    """Get all emergency contacts for a user."""
-    user = db.users.find_one(
-        {"_id": ObjectId(user_id)}, {"emergency_contacts": 1}
-    )
-    return user.get("emergency_contacts", []) if user else []
+    """Get all emergency contacts for a user from trusted_contacts collection."""
+    from bson import ObjectId
+    contacts = list(db.trusted_contacts.find({"user_id": ObjectId(user_id)}))
+    return contacts
 
 def update_user_password(db, user_id, new_password):
     """Hash and update the user's password."""

@@ -57,31 +57,53 @@
             </nav>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Profile Section -->
         <main class="main-content">
-            <header style="margin-bottom: 3rem;">
-                <h1 style="font-size: 2rem; font-weight: 800;">Your <span class="gradient-text">Profile</span></h1>
-                <p style="color: var(--text-muted);">Manage your personal information and emergency contacts.</p>
+            <header style="margin-bottom: 3rem; display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <h1 style="font-size: 2rem; font-weight: 800;">Your <span class="gradient-text">Profile</span></h1>
+                    <p style="color: var(--text-muted);">Manage your personal information and emergency contacts.</p>
+                </div>
+                <div id="sos-status-badge" class="badge" style="display: none;">
+                    <i class="fas fa-circle-exclamation"></i> SOS ACTIVE
+                </div>
             </header>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
                 <!-- Personal Info -->
-                <div class="feature-card">
-                    <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-user-circle"></i> Personal Information</h3>
-                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                        <div>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Full Name</p>
-                            <p id="prof-name" style="font-weight: 600; font-size: 1.125rem;">Loading...</p>
-                        </div>
-                        <div>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Email Address</p>
-                            <p id="prof-email" style="font-weight: 600; font-size: 1.125rem;">Loading...</p>
-                        </div>
-                        <div>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Phone Number</p>
-                            <p id="prof-phone" style="font-weight: 600; font-size: 1.125rem;">Loading...</p>
-                        </div>
+                <div class="feature-card" id="profile-display">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;"><i class="fas fa-user-circle"></i> Personal Information</h3>
+                        <button onclick="toggleEditProfile(true)" class="btn btn-ghost" style="padding: 0.25rem 0.75rem;"><i class="fas fa-edit"></i> Edit</button>
                     </div>
+                    <div id="profile-info" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="skeleton-text" style="width: 100%; height: 40px;"></div>
+                        <div class="skeleton-text" style="width: 100%; height: 40px;"></div>
+                        <div class="skeleton-text" style="width: 100%; height: 40px;"></div>
+                    </div>
+                </div>
+
+                <!-- Profile Edit Form (Hidden by default) -->
+                <div class="feature-card hidden" id="profile-edit">
+                    <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-user-edit"></i> Edit Profile</h3>
+                    <form id="profile-form" class="space-y-4">
+                        <div class="form-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="edit-name" placeholder="Full Name" required>
+                        </div>
+                        <div class="form-group">
+                            <i class="fas fa-phone"></i>
+                            <input type="text" id="edit-phone" placeholder="Phone Number" required>
+                        </div>
+                        <div class="form-group">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input type="text" id="edit-address" placeholder="Address">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                            <button type="button" onclick="toggleEditProfile(false)" class="btn btn-outline" style="flex: 1;">Cancel</button>
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Emergency Contacts -->
@@ -91,19 +113,21 @@
                         <button id="open-modal" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">+ Add</button>
                     </div>
                     <div id="contacts-list" style="display: flex; flex-direction: column; gap: 1rem;">
-                        <p style="color: var(--text-muted); font-size: 0.875rem;">Loading contacts...</p>
+                        <div class="skeleton-text" style="width: 100%; height: 60px;"></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Add Contact Modal -->
+    <!-- Contact Modal (Add/Edit) -->
     <div id="contact-modal" class="modal hidden">
         <div class="modal-content auth-card">
-            <h2 style="margin-bottom: 0.5rem;">Add Contact</h2>
+            <button id="close-modal-top" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fas fa-times"></i></button>
+            <h2 id="modal-title" style="margin-bottom: 0.5rem;">Add Contact</h2>
             <p style="margin-bottom: 1.5rem;">Information will be used during SOS alerts.</p>
             <form id="contact-form" class="space-y-4">
+                <input type="hidden" id="contact-id">
                 <div class="form-group">
                     <i class="fas fa-user"></i>
                     <input type="text" id="contact-name" placeholder="Full Name" required>
@@ -118,15 +142,18 @@
                 </div>
                 <div class="form-group">
                     <i class="fas fa-users"></i>
-                    <input type="text" id="contact-relation" placeholder="Relation (e.g. Mom, Friend)">
+                    <input type="text" id="contact-relation" placeholder="Relation (e.g. Mom, Friend)" required>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="button" id="close-modal" class="btn btn-outline" style="flex: 1;">Cancel</button>
+                    <button type="button" id="close-modal" class="btn btn-outline" style="flex: 1;">Back</button>
                     <button type="submit" class="btn btn-primary" style="flex: 1;">Save Contact</button>
                 </div>
             </form>
         </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
 
     <script src="static/js/api.js"></script>
     <script src="static/js/fake-call.js"></script>
@@ -134,23 +161,80 @@
         const contactsList = document.getElementById('contacts-list');
         const modal = document.getElementById('contact-modal');
         const contactForm = document.getElementById('contact-form');
+        const profileDisplay = document.getElementById('profile-display');
+        const profileEdit = document.getElementById('profile-edit');
+        const profileForm = document.getElementById('profile-form');
+        const toast = document.getElementById('toast');
+
+        let currentUser = null;
+
+        const showToast = (message, type = 'success') => {
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        };
+
+        const fetchProfile = async () => {
+            try {
+                const user = await api.get('/user/profile');
+                currentUser = user;
+                
+                document.getElementById('profile-info').innerHTML = `
+                    <div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Full Name</p>
+                        <p style="font-weight: 600; font-size: 1.125rem;">${user.name}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Email Address</p>
+                        <p style="font-weight: 600; font-size: 1.125rem;">${user.email}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Phone Number</p>
+                        <p style="font-weight: 600; font-size: 1.125rem;">${user.phone || 'Not provided'}</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Home Address</p>
+                        <p style="font-weight: 600; font-size: 1.125rem;">${user.address || 'Not provided'}</p>
+                    </div>
+                `;
+
+                if (user.emergency_status === 'active') {
+                    document.getElementById('sos-status-badge').style.display = 'inline-block';
+                } else {
+                    document.getElementById('sos-status-badge').style.display = 'none';
+                }
+
+                // Fill edit form
+                document.getElementById('edit-name').value = user.name;
+                document.getElementById('edit-phone').value = user.phone || '';
+                document.getElementById('edit-address').value = user.address || '';
+                
+            } catch (err) {
+                console.error("Failed to load profile:", err);
+                document.getElementById('profile-info').innerHTML = '<p style="color: #ef4444;">Error loading profile data.</p>';
+            }
+        };
 
         const fetchContacts = async () => {
             try {
                 const contacts = await api.get('/user/contacts');
                 if (contacts.length === 0) {
-                    contactsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.875rem;">No contacts added yet.</p>';
+                    contactsList.innerHTML = '<div class="feature-card" style="background: rgba(255,255,255,0.02); text-align: center; padding: 2rem;"><p style="color: var(--text-muted);">No contacts added yet. (Max 6)</p></div>';
                     return;
                 }
                 contactsList.innerHTML = contacts.map(c => `
                     <div class="feature-card" style="background: var(--bg); border-color: var(--border); padding: 1rem;">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
-                                <p style="font-weight: 700; margin-bottom: 0.25rem;">${c.name} <span style="font-weight: 400; font-size: 0.75rem; color: var(--accent-pink);">(${c.relation || 'Contact'})</span></p>
+                                <p style="font-weight: 700; margin-bottom: 0.25rem;">${c.name} <span style="font-weight: 400; font-size: 0.75rem; color: var(--accent-pink);">(${c.relation})</span></p>
                                 <p style="font-size: 0.875rem; color: var(--text-muted);"><i class="fas fa-phone" style="font-size: 0.75rem;"></i> ${c.phone}</p>
                                 ${c.address ? `<p style="font-size: 0.875rem; color: var(--text-muted);"><i class="fas fa-map-marker-alt" style="font-size: 0.75rem;"></i> ${c.address}</p>` : ''}
                             </div>
-                            <button onclick="deleteContact('${c.id}')" style="background: none; color: #ef4444; font-size: 0.875rem;"><i class="fas fa-trash"></i></button>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="openEditModal('${c.id}', '${c.name}', '${c.phone}', '${c.address}', '${c.relation}')" style="background: none; color: var(--primary); font-size: 0.875rem;"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteContact('${c.id}')" style="background: none; color: #ef4444; font-size: 0.875rem;"><i class="fas fa-trash"></i></button>
+                            </div>
                         </div>
                     </div>
                 `).join('');
@@ -159,21 +243,67 @@
             }
         };
 
+        window.toggleEditProfile = (show) => {
+            if (show) {
+                profileDisplay.classList.add('hidden');
+                profileEdit.classList.remove('hidden');
+            } else {
+                profileDisplay.classList.remove('hidden');
+                profileEdit.classList.add('hidden');
+            }
+        };
+
+        profileForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('edit-name').value,
+                phone: document.getElementById('edit-phone').value,
+                address: document.getElementById('edit-address').value
+            };
+            try {
+                await api.put('/user/profile', data);
+                showToast("Profile updated successfully!");
+                toggleEditProfile(false);
+                fetchProfile();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+
+        window.openEditModal = (id, name, phone, address, relation) => {
+            document.getElementById('modal-title').textContent = "Edit Contact";
+            document.getElementById('contact-id').value = id;
+            document.getElementById('contact-name').value = name;
+            document.getElementById('contact-phone').value = phone;
+            document.getElementById('contact-address').value = address === 'null' ? '' : address;
+            document.getElementById('contact-relation').value = relation;
+            modal.classList.remove('hidden');
+        };
+
         window.deleteContact = async (id) => {
             if (!confirm("Remove this contact?")) return;
             try {
                 await api.delete(\`/user/contacts/\${id}\`);
+                showToast("Contact removed.");
                 fetchContacts();
             } catch (err) {
-                alert("Failed to delete contact.");
+                showToast("Failed to delete contact.", "error");
             }
         };
 
-        document.getElementById('open-modal').onclick = () => modal.classList.remove('hidden');
+        document.getElementById('open-modal').onclick = () => {
+            document.getElementById('modal-title').textContent = "Add Contact";
+            document.getElementById('contact-id').value = "";
+            contactForm.reset();
+            modal.classList.remove('hidden');
+        };
+
         document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
+        document.getElementById('close-modal-top').onclick = () => modal.classList.add('hidden');
 
         contactForm.onsubmit = async (e) => {
             e.preventDefault();
+            const id = document.getElementById('contact-id').value;
             const data = {
                 name: document.getElementById('contact-name').value,
                 phone: document.getElementById('contact-phone').value,
@@ -181,25 +311,38 @@
                 relation: document.getElementById('contact-relation').value
             };
             try {
-                await api.post('/user/contacts', data);
+                if (id) {
+                    await api.put(\`/user/contacts/\${id}\`, data);
+                    showToast("Contact updated!");
+                } else {
+                    await api.post('/user/contacts', data);
+                    showToast("Contact added successfully!");
+                }
                 modal.classList.add('hidden');
                 contactForm.reset();
                 fetchContacts();
             } catch (err) {
-                alert(err.message);
+                showToast(err.message, "error");
             }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
             api.checkAuth();
-            const user = api.getUser();
-            document.getElementById('prof-name').textContent = user.name;
-            document.getElementById('prof-email').textContent = user.email;
-            document.getElementById('prof-phone').textContent = user.phone || 'Not provided';
-            
+            fetchProfile();
             fetchContacts();
             document.getElementById('logout-btn').addEventListener('click', () => api.logout());
+            
+            // Toggle Fake Call Submenu
+            const fcToggle = document.getElementById('fake-call-toggle');
+            const fcMenu = document.getElementById('fake-call-menu');
+            fcToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fcMenu.style.display = fcMenu.style.display === 'block' ? 'none' : 'block';
+            });
+            document.addEventListener('click', () => fcMenu.style.display = 'none');
         });
     </script>
+</body>
+</html>
 </body>
 </html>

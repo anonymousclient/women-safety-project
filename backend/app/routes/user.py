@@ -2,12 +2,56 @@
 User Specific Routes.
 """
 
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from app import mongo
 from app.middleware.auth_middleware import token_required
 from bson import ObjectId
 
 user_bp = Blueprint("user", __name__)
+
+@user_bp.route("/profile", methods=["GET"])
+@token_required
+def get_profile(current_user):
+    """Get full profile of the logged-in user."""
+    # Ensure we have the latest data from DB
+    user = mongo.users.find_one({"_id": current_user["_id"]})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    return jsonify({
+        "id": str(user["_id"]),
+        "name": user.get("name", ""),
+        "email": user.get("email", ""),
+        "phone": user.get("phone", ""),
+        "address": user.get("address", ""),
+        "role": user.get("role", "user"),
+        "emergency_status": user.get("emergency_status", "safe")
+    }), 200
+
+@user_bp.route("/profile", methods=["PUT"])
+@token_required
+def update_profile(current_user):
+    """Update user profile details."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+        
+    allowed_fields = ["name", "phone", "address"]
+    update_data = {}
+    for field in allowed_fields:
+        if field in data:
+            update_data[field] = data[field].strip()
+            
+    if not update_data:
+        return jsonify({"error": "No valid fields to update"}), 400
+        
+    mongo.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": update_data}
+    )
+    
+    return jsonify({"message": "Profile updated successfully"}), 200
 
 @user_bp.route("/dashboard-stats", methods=["GET"])
 @token_required
@@ -21,11 +65,109 @@ def get_user_stats(current_user):
     # Count incidents reported by this user
     incident_count = mongo.incidents.count_documents({"reported_by": user_id})
     
+    # Count contacts from trusted_contacts collection
+    contacts_count = mongo.trusted_contacts.count_documents({"user_id": user_id})
+    
     return jsonify({
         "sos_count": sos_count,
         "incident_count": incident_count,
-        "emergency_contacts_count": len(current_user.get("emergency_contacts", []))
+        "emergency_contacts_count": contacts_count
     }), 200
+
+@user_bp.route("/contacts", methods=["GET"])
+@token_required
+def get_contacts(current_user):
+    """Get all emergency contacts for the user from trusted_contacts collection."""
+    user_id = current_user["_id"]
+    contacts = list(mongo.trusted_contacts.find({"user_id": user_id}))
+    
+    result = []
+    for c in contacts:
+        result.append({
+            "id": str(c["_id"]),
+            "name": c.get("name", ""),
+            "phone": c.get("phone", ""),
+            "address": c.get("address", ""),
+            "relation": c.get("relation", "")
+        })
+        
+    return jsonify(result), 200
+
+@user_bp.route("/contacts", methods=["POST"])
+@token_required
+def add_emergency_contact(current_user):
+    """Add a new emergency contact to trusted_contacts collection."""
+    user_id = current_user["_id"]
+    
+    # Check limit (max 6)
+    count = mongo.trusted_contacts.count_documents({"user_id": user_id})
+    if count >= 6:
+        return jsonify({"error": "You can only have a maximum of 6 emergency contacts"}), 400
+        
+    data = request.get_json()
+    if not data or not data.get("name") or not data.get("phone"):
+        return jsonify({"error": "Name and phone are required"}), 400
+        
+    phone = data.get("phone").strip()
+    
+    # Check for duplicate phone
+    duplicate = mongo.trusted_contacts.find_one({"user_id": user_id, "phone": phone})
+    if duplicate:
+        return jsonify({"error": "A contact with this phone number already exists"}), 400
+        
+    contact = {
+        "user_id": user_id,
+        "name": data.get("name").strip(),
+        "phone": phone,
+        "address": data.get("address", "").strip(),
+        "relation": data.get("relation", "").strip(),
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    result = mongo.trusted_contacts.insert_one(contact)
+    contact["id"] = str(result.inserted_id)
+    del contact["_id"]
+    del contact["user_id"]
+    
+    return jsonify({"message": "Contact added successfully", "contact": contact}), 201
+
+@user_bp.route("/contacts/<contact_id>", methods=["PUT"])
+@token_required
+def edit_emergency_contact(current_user, contact_id):
+    """Edit an existing emergency contact."""
+    user_id = current_user["_id"]
+    data = request.get_json()
+    
+    update_data = {}
+    if "name" in data: update_data["name"] = data["name"].strip()
+    if "phone" in data: update_data["phone"] = data["phone"].strip()
+    if "address" in data: update_data["address"] = data["address"].strip()
+    if "relation" in data: update_data["relation"] = data["relation"].strip()
+    
+    if not update_data:
+        return jsonify({"error": "No data to update"}), 400
+        
+    result = mongo.trusted_contacts.update_one(
+        {"_id": ObjectId(contact_id), "user_id": user_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        return jsonify({"error": "Contact not found"}), 404
+        
+    return jsonify({"message": "Contact updated successfully"}), 200
+
+@user_bp.route("/contacts/<contact_id>", methods=["DELETE"])
+@token_required
+def delete_emergency_contact(current_user, contact_id):
+    """Delete an emergency contact from trusted_contacts collection."""
+    user_id = current_user["_id"]
+    result = mongo.trusted_contacts.delete_one({"_id": ObjectId(contact_id), "user_id": user_id})
+    
+    if result.deleted_count == 0:
+        return jsonify({"error": "Contact not found"}), 404
+        
+    return jsonify({"message": "Contact removed successfully"}), 200
 
 @user_bp.route("/sos-history", methods=["GET"])
 @token_required
@@ -39,130 +181,33 @@ def get_sos_history(current_user):
         result.append({
             "id": str(alert["_id"]),
             "status": alert.get("status", "unknown"),
-            "triggered_at": alert["triggered_at"].isoformat(),
+            "triggered_at": alert["triggered_at"].isoformat() if hasattr(alert["triggered_at"], "isoformat") else alert["triggered_at"],
             "address": alert.get("trigger_address", "Unknown location")
         })
     
-    return jsonify(result), 200
-
-@user_bp.route("/contacts", methods=["GET"])
-@token_required
-def get_contacts(current_user):
-    """Get all emergency contacts for the user."""
-    return jsonify(current_user.get("emergency_contacts", [])), 200
-
-@user_bp.route("/contacts", methods=["POST"])
-@token_required
-def add_emergency_contact(current_user):
-    """Add a new emergency contact."""
-    data = request.get_json()
-    if not data or not data.get("name") or not data.get("phone"):
-        return jsonify({"error": "Name and phone are required"}), 400
-        
-    contact = {
-        "id": str(ObjectId()),
-        "name": data.get("name").strip(),
-        "phone": data.get("phone").strip(),
-        "address": data.get("address", "").strip(),
-        "relation": data.get("relation", "").strip()
-    }
-    
-    mongo.users.update_one(
-        {"_id": current_user["_id"]},
-        {"$push": {"emergency_contacts": contact}}
-    )
-    
-    return jsonify({"message": "Contact added successfully", "contact": contact}), 201
-
-@user_bp.route("/recent-travels", methods=["GET"])
-@token_required
-def get_recent_travels(current_user):
-    """Get recently traveled routes for the user."""
-    user_id = current_user["_id"]
-    travels = list(mongo.recent_routes.find({"user_id": user_id}).sort("traveled_at", -1).limit(5))
-    
-    if not travels:
-        # Generate realistic Bhopal-based mock data for demo
-        mock_data = [
-            {
-                "destination": "MP Nagar ? Bhopal Railway Station",
-                "date": "Today, 10:30 AM",
-                "safety_score": 82,
-                "distance": "4.2 km"
-            },
-            {
-                "destination": "New Market ? AIIMS Bhopal",
-                "date": "Yesterday, 08:15 PM",
-                "safety_score": 65,
-                "distance": "12.8 km"
-            },
-            {
-                "destination": "Indrapuri ? Ashoka Garden",
-                "date": "2 days ago",
-                "safety_score": 91,
-                "distance": "3.5 km"
-            }
-        ]
-        return jsonify(mock_data), 200
-        
-    result = []
-    for t in travels:
-        result.append({
-            "destination": t.get("destination"),
-            "date": t["traveled_at"].strftime("%b %d, %I:%M %p"),
-            "safety_score": t.get("safety_score", 0),
-            "distance": t.get("distance", "0 km")
-        })
     return jsonify(result), 200
 
 @user_bp.route("/activities", methods=["GET"])
 @token_required
 def get_recent_activities(current_user):
     """Get a feed of recent activities for the user."""
-    # Combine data from multiple sources: SOS history, Route history, Login logs
     user_id = current_user["_id"]
-    
     activities = []
     
-    # 1. Recent SOS triggers
+    # Recent SOS triggers
     sos_alerts = list(mongo.sos_alerts.find({"user_id": user_id}).sort("triggered_at", -1).limit(3))
     for alert in sos_alerts:
         activities.append({
             "type": "sos",
             "message": f"SOS Alert triggered at {alert.get('trigger_address', 'Unknown location')}",
-            "time": alert["triggered_at"].isoformat(),
+            "time": alert["triggered_at"].isoformat() if hasattr(alert["triggered_at"], "isoformat") else str(alert["triggered_at"]),
             "icon": "fas fa-exclamation-triangle",
             "color": "var(--emergency)"
         })
         
-    # 2. Recent Safe Routes
-    routes = list(mongo.recent_routes.find({"user_id": user_id}).sort("traveled_at", -1).limit(3))
-    for r in routes:
-        activities.append({
-            "type": "route",
-            "message": f"Safe route generated for {r.get('destination')}",
-            "time": r["traveled_at"].isoformat(),
-            "icon": "fas fa-directions",
-            "color": "var(--primary)"
-        })
-
     if not activities:
-        # Realistic mock activities for demo
         activities = [
-            {"type": "info", "message": "Live location shared successfully", "time": "2024-05-09T10:00:00", "icon": "fas fa-broadcast-tower", "color": "#22c55e"},
-            {"type": "route", "message": "Safe route generated for MP Nagar", "time": "2024-05-08T18:30:00", "icon": "fas fa-directions", "color": "var(--primary)"},
-            {"type": "alert", "message": "Nearby emergency alert detected", "time": "2024-05-08T12:00:00", "icon": "fas fa-bell", "color": "var(--emergency)"},
-            {"type": "info", "message": "Safety scan completed", "time": "2024-05-07T09:00:00", "icon": "fas fa-shield-alt", "color": "#4fc3f7"}
+            {"type": "info", "message": "Welcome to SafeHer!", "time": datetime.now(timezone.utc).isoformat(), "icon": "fas fa-shield-alt", "color": "var(--primary)"}
         ]
         
     return jsonify(activities), 200
-
-@user_bp.route("/contacts/<contact_id>", methods=["DELETE"])
-@token_required
-def delete_emergency_contact(current_user, contact_id):
-    """Delete an emergency contact."""
-    mongo.users.update_one(
-        {"_id": current_user["_id"]},
-        {"$pull": {"emergency_contacts": {"id": contact_id}}}
-    )
-    return jsonify({"message": "Contact removed successfully"}), 200
