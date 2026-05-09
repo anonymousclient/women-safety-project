@@ -7,12 +7,17 @@
     <link rel="stylesheet" href="static/css/style.css">
     <link rel="stylesheet" href="static/css/fake-call.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <style>
         #map {
             width: 100%;
-            height: calc(100vh - 12rem);
+            height: calc(100vh - 15rem);
             border-radius: 1.5rem;
             border: 1px solid var(--border);
+            z-index: 1;
         }
         .map-controls {
             display: flex;
@@ -27,6 +32,25 @@
             border-radius: 0.75rem;
             color: white;
             outline: none;
+        }
+        }
+        /* Leaflet custom dark theme overrides */
+        .leaflet-container {
+            background: var(--bg) !important;
+        }
+        .leaflet-bar a {
+            background-color: var(--surface) !important;
+            color: white !important;
+            border-bottom: 1px solid var(--border) !important;
+        }
+        .leaflet-routing-container {
+            background-color: var(--surface) !important;
+            color: white !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 0.75rem !important;
+            padding: 1rem !important;
+            font-size: 0.8rem;
+            max-width: 300px;
         }
     </style>
 </head>
@@ -93,15 +117,39 @@
 
             <div id="map"></div>
             
-            <div id="route-info" class="feature-card hidden" style="margin-top: 1.5rem; border-left: 4px solid #22c55e;">
-                <p style="font-weight: 700; color: #22c55e;">Safe Route Found</p>
-                <p style="font-size: 0.875rem; color: var(--text-muted);">This route avoids 3 reported unsafe zones in your path.</p>
+            <div id="route-info" class="feature-card hidden" style="margin-top: 1.5rem; border-left: 4px solid #22c55e; background: var(--surface);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="font-weight: 700; color: #22c55e; font-size: 1.1rem;">Safe Route Found</p>
+                        <p id="safety-score-text" style="font-size: 0.875rem; color: var(--text-muted);">Calculating safety score...</p>
+                    </div>
+                    <div id="risk-badge" style="padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 700; font-size: 0.875rem;">
+                        SAFE
+                    </div>
+                </div>
+                
+                <div id="risk-breakdown" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">Incident Density</p>
+                        <div style="height: 4px; background: #333; border-radius: 2px; margin-top: 0.25rem;">
+                            <div id="incident-bar" style="height: 100%; background: #22c55e; width: 10%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">Time Factor</p>
+                        <div style="height: 4px; background: #333; border-radius: 2px; margin-top: 0.25rem;">
+                            <div id="time-bar" style="height: 100%; background: #22c55e; width: 20%;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao&libraries=places"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Routing Machine JS -->
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="static/js/api.js"></script>
     <script src="static/js/fake-call.js"></script>
     <script src="static/js/map.js"></script>
