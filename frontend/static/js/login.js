@@ -38,9 +38,8 @@ form.addEventListener('submit', async (e) => {
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
 
-        if (!isAdmin && (!res.user.email_verified || !res.user.phone_verified)) {
+        if (!isAdmin && !res.user.email_verified) {
             sessionStorage.setItem('temp_email', res.user.email);
-            sessionStorage.setItem('temp_phone', res.user.phone);
             window.location.href = 'verify-otp.html';
         } else if (res.user.role === 'admin') {
             window.location.href = 'admin.html';

@@ -59,15 +59,18 @@ def send_email_otp_smtp(email, otp_code):
     msg.attach(MIMEText(body, 'plain'))
 
     try:
+        print(f"Attempting to send email to {email}...")
         server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.set_debuglevel(1)
         server.starttls()
         server.login(sender_email, sender_password)
         text = msg.as_string()
         server.sendmail(sender_email, email, text)
         server.quit()
+        print(f"Email successfully sent to {email}")
         return True
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f"SMTP ERROR: Failed to send email to {email}: {e}")
         return False
 
 def verify_otp_code(db, user_id, provided_code, otp_type="email"):
@@ -81,7 +84,12 @@ def verify_otp_code(db, user_id, provided_code, otp_type="email"):
         return False, "No active OTP found. Please request a new one."
         
     # Check expiry
-    if datetime.now(timezone.utc) > otp_record["expires_at"]:
+    now = datetime.now(timezone.utc)
+    expires_at = otp_record["expires_at"]
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if now > expires_at:
         db.otp_verifications.delete_one({"_id": otp_record["_id"]})
         return False, "OTP has expired. Please request a new one."
         

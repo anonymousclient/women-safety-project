@@ -1,14 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg: #0a0a0b;
-  --surface: #161618;
-  --emergency: #ff3b3b;
-  --primary: #8b5cf6;
-  --secondary: #d946ef;
+  --bg: #0f0c29;
+  --surface: #1b173d;
+  --emergency: #ff2d55;
+  --primary: #9d50bb;
+  --secondary: #6e48aa;
+  --accent-pink: #ff00cc;
   --text: #ffffff;
-  --text-muted: #a1a1aa;
-  --border: #27272a;
+  --text-muted: #cbd5e1;
+  --border: #332d5e;
 }
 
 * {
@@ -19,9 +20,10 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--bg);
+  background: radial-gradient(circle at top right, #24243e, #1b173d, #0f0c29);
   color: var(--text);
   line-height: 1.5;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 
@@ -63,7 +65,7 @@ nav {
 }
 
 .logo i {
-  color: var(--emergency);
+  color: var(--accent-pink);
 }
 
 .nav-links {
@@ -199,7 +201,7 @@ nav {
 }
 
 .feature-card:hover {
-  border-color: var(--emergency);
+  border-color: var(--accent-pink);
 }
 
 .feature-icon {
@@ -279,7 +281,7 @@ nav {
 }
 
 .form-group input:focus {
-  border-color: var(--emergency);
+  border-color: var(--accent-pink);
 }
 
 .btn-submit {
@@ -287,7 +289,7 @@ nav {
   padding: 1rem;
   border-radius: 0.75rem;
   font-weight: 700;
-  background-color: var(--emergency);
+  background: linear-gradient(to right, var(--primary), var(--accent-pink));
   color: white;
   margin-top: 1rem;
   display: flex;
@@ -312,7 +314,7 @@ nav {
 }
 
 .auth-footer a {
-  color: var(--emergency);
+  color: var(--accent-pink);
 }
 
 .error-msg {
@@ -363,11 +365,11 @@ nav {
 }
 
 .nav-item.active i {
-  color: var(--emergency);
+  color: var(--accent-pink);
 }
 
 .sos-btn {
-  background-color: var(--emergency);
+  background: linear-gradient(135deg, var(--primary), var(--accent-pink));
   color: white;
   padding: 2rem;
   border-radius: 50%;
@@ -375,14 +377,14 @@ nav {
   height: 12rem;
   font-size: 2.5rem;
   font-weight: 800;
-  box-shadow: 0 0 50px rgba(255, 59, 59, 0.4);
+  box-shadow: 0 0 50px rgba(157, 80, 187, 0.4);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 50px rgba(255, 59, 59, 0.4); }
-  50% { transform: scale(1.05); box-shadow: 0 0 70px rgba(255, 59, 59, 0.6); }
-  100% { transform: scale(1); box-shadow: 0 0 50px rgba(255, 59, 59, 0.4); }
+  0% { transform: scale(1); box-shadow: 0 0 50px rgba(157, 80, 187, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 70px rgba(157, 80, 187, 0.6); }
+  100% { transform: scale(1); box-shadow: 0 0 50px rgba(157, 80, 187, 0.4); }
 }
 
 /* Helpers */
@@ -392,3 +394,96 @@ nav {
 .space-x-2 > * + * { margin-left: 0.5rem; }
 .mt-4 { margin-top: 1rem; }
 .hidden { display: none; }
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 28rem;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.fake-call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1b173d 0%, #0f0c29 100%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 4rem 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.caller-info {
+  text-align: center;
+}
+
+.caller-info h2 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.caller-info p {
+  color: var(--accent-pink);
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+.call-actions {
+  display: flex;
+  gap: 4rem;
+}
+
+.call-btn {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.call-btn.decline {
+  background: #ef4444;
+}
+
+.call-btn.accept {
+  background: #22c55e;
+  animation: callPulse 1.5s infinite;
+}
+
+@keyframes callPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

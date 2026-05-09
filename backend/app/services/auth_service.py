@@ -103,6 +103,7 @@ def login_user(db, email, password):
         "email": user["email"],
         "phone": user.get("phone", ""),
         "role": user.get("role", "user"),
+        "email_verified": user.get("email_verified", False),
     }
 
     return True, "Login successful", token, user_data

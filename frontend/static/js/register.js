@@ -54,7 +54,6 @@ form.addEventListener('submit', async (e) => {
     const res = await api.post('/auth/register', data);
     // Redirect to OTP with email in URL or session (simulating React state)
     sessionStorage.setItem('temp_email', data.email);
-    sessionStorage.setItem('temp_phone', data.phone);
     window.location.href = 'verify-otp.html';
   } catch (err) {
     globalError.textContent = err.message;

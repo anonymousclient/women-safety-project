@@ -42,8 +42,13 @@ def register():
     )
 
     if success:
+        from app.services.otp_service import generate_otp, store_otp, send_email_otp_smtp
+        otp_code = generate_otp()
+        store_otp(mongo, user_id, email, otp_code, otp_type="email")
+        send_email_otp_smtp(email, otp_code)
+        
         return jsonify({
-            "message": message,
+            "message": "Registration successful. OTP sent to your email.",
             "user_id": user_id,
         }), 201
     else:

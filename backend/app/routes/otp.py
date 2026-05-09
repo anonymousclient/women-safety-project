@@ -7,14 +7,20 @@ from app.middleware.auth_middleware import token_required
 otp_bp = Blueprint("otp", __name__)
 
 @otp_bp.route("/send-email", methods=["POST"])
-@token_required
-def send_email_otp_route(current_user):
+def send_email_otp_route():
     """
     Generate and send an OTP to the user's registered email.
-    User must be authenticated via JWT to request an OTP for their account.
     """
-    user_id = current_user["_id"]
-    email = current_user["email"]
+    data = request.get_json()
+    if not data or "email" not in data:
+        return jsonify({"error": "Email is required."}), 400
+
+    email = data.get("email").strip().lower()
+    user = mongo.users.find_one({"email": email})
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+
+    user_id = str(user["_id"])
 
     # Generate and store OTP
     otp_code = generate_otp()
@@ -29,24 +35,29 @@ def send_email_otp_route(current_user):
         return jsonify({"error": "Failed to send OTP email. Please try again later."}), 500
 
 @otp_bp.route("/verify-email", methods=["POST"])
-@token_required
-def verify_email_otp_route(current_user):
+def verify_email_otp_route():
     """
     Verify the email OTP provided by the user.
     """
     data = request.get_json()
-    if not data or "otp" not in data:
-        return jsonify({"error": "OTP code is required."}), 400
+    if not data or "otp" not in data or "email" not in data:
+        return jsonify({"error": "OTP code and email are required."}), 400
 
-    user_id = current_user["_id"]
+    email = data.get("email").strip().lower()
     provided_code = str(data.get("otp")).strip()
+
+    user = mongo.users.find_one({"email": email})
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+
+    user_id = str(user["_id"])
 
     success, message = verify_otp_code(mongo, user_id, provided_code, otp_type="email")
 
     if success:
         # Mark email as verified in user document
         mongo.users.update_one(
-            {"_id": user_id},
+            {"_id": user["_id"]},
             {"$set": {"email_verified": True}}
         )
         return jsonify({"message": message}), 200

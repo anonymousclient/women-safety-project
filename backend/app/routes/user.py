@@ -2,7 +2,7 @@
 User Specific Routes.
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from app import mongo
 from app.middleware.auth_middleware import token_required
 from bson import ObjectId
@@ -44,3 +44,42 @@ def get_sos_history(current_user):
         })
     
     return jsonify(result), 200
+
+@user_bp.route("/contacts", methods=["GET"])
+@token_required
+def get_contacts(current_user):
+    """Get all emergency contacts for the user."""
+    return jsonify(current_user.get("emergency_contacts", [])), 200
+
+@user_bp.route("/contacts", methods=["POST"])
+@token_required
+def add_emergency_contact(current_user):
+    """Add a new emergency contact."""
+    data = request.get_json()
+    if not data or not data.get("name") or not data.get("phone"):
+        return jsonify({"error": "Name and phone are required"}), 400
+        
+    contact = {
+        "id": str(ObjectId()),
+        "name": data.get("name").strip(),
+        "phone": data.get("phone").strip(),
+        "address": data.get("address", "").strip(),
+        "relation": data.get("relation", "").strip()
+    }
+    
+    mongo.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$push": {"emergency_contacts": contact}}
+    )
+    
+    return jsonify({"message": "Contact added successfully", "contact": contact}), 201
+
+@user_bp.route("/contacts/<contact_id>", methods=["DELETE"])
+@token_required
+def delete_emergency_contact(current_user, contact_id):
+    """Delete an emergency contact."""
+    mongo.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$pull": {"emergency_contacts": {"id": contact_id}}}
+    )
+    return jsonify({"message": "Contact removed successfully"}), 200

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emergency SOS - SafeHer</title>
     <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="static/css/fake-call.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -34,6 +35,20 @@
                 </a>
                 
                 <div style="margin-top: auto;">
+                    <!-- Fake Call Submenu -->
+                    <div id="fake-call-menu" style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 0.5rem; display: none; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                        <button onclick="FakeCallSystem.start('iphone')" style="width: 100%; padding: 0.75rem; background: none; color: white; border: none; font-size: 0.875rem; text-align: left; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fab fa-apple"></i> Apple Style
+                        </button>
+                        <button onclick="FakeCallSystem.start('android')" style="width: 100%; padding: 0.75rem; background: none; color: white; border: none; font-size: 0.875rem; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fab fa-android"></i> Android Style
+                        </button>
+                    </div>
+                    
+                    <button id="fake-call-toggle" class="nav-item" style="width: 100%; border: none; background: none; cursor: pointer; color: var(--accent-pink); display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-phone-alt"></i>
+                        <span>📞 Fake Call</span>
+                    </button>
                     <button id="logout-btn" class="nav-item" style="width: 100%; border: none; background: none; cursor: pointer;">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
@@ -75,6 +90,7 @@
     </div>
 
     <script src="static/js/api.js"></script>
+    <script src="static/js/fake-call.js"></script>
     <script src="static/js/sos.js"></script>
 </body>
 </html>
