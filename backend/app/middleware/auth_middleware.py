@@ -28,6 +28,10 @@ def token_required(f):
     """
     @wraps(f)
     def decorated(*args, **kwargs):
+        # ── Allow CORS preflight (OPTIONS) requests ──
+        if request.method == "OPTIONS":
+            return "", 204
+
         token = None
 
         # ── Extract token from "Authorization: Bearer <token>" header ──

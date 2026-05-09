@@ -29,6 +29,7 @@ from app.services.firebase_service import (
     resolve_sos_in_realtime_db,
     clear_live_location,
 )
+from app.middleware.auth_middleware import token_required
 
 admin_bp = Blueprint(
     "admin",
@@ -54,19 +55,19 @@ def sos_page():
     return render_template("sos.html", page="sos")
 
 
-@admin_bp.route("/incidents")
+@admin_bp.route("/incidents-page")
 def incidents_page():
     """Incident history table page."""
     return render_template("incidents.html", page="incidents")
 
 
-@admin_bp.route("/zones")
+@admin_bp.route("/zones-page")
 def zones_page():
     """Unsafe zones map page."""
     return render_template("zones.html", page="zones")
 
 
-@admin_bp.route("/users")
+@admin_bp.route("/users-page")
 def users_page():
     """Registered users list."""
     return render_template("users.html", page="users")
@@ -77,7 +78,8 @@ def users_page():
 # ────────────────────────────────────────────────
 
 @admin_bp.route("/stats")
-def api_stats():
+@token_required
+def api_stats(current_user):
     """Dashboard statistics — counts and summaries."""
     total_users = mongo.users.count_documents({})
     active_sos = mongo.sos_alerts.count_documents({"status": "active"})
@@ -102,7 +104,8 @@ def api_stats():
 
 
 @admin_bp.route("/sos/active")
-def api_active_sos():
+@token_required
+def api_active_sos(current_user):
     """Get all active SOS alerts with user info."""
     alerts = get_active_alerts(mongo)
     result = []
@@ -120,8 +123,9 @@ def api_active_sos():
     return jsonify(result)
 
 
-@admin_bp.route("/sos/<alert_id>/resolve", methods=["PUT"])
-def api_resolve_sos(alert_id):
+@admin_bp.route("/sos/<alert_id>/resolve", methods=["PUT", "OPTIONS"])
+@token_required
+def api_resolve_sos(current_user, alert_id):
     """Resolve an SOS alert from the admin dashboard."""
     data = request.get_json() or {}
     notes = data.get("notes", "Resolved by admin")
@@ -137,7 +141,8 @@ def api_resolve_sos(alert_id):
 
 
 @admin_bp.route("/incidents")
-def api_incidents():
+@token_required
+def api_incidents(current_user):
     """Get all incidents for the history table."""
     pipeline = [
         {"$sort": {"reported_at": -1}},
@@ -170,8 +175,9 @@ def api_incidents():
     return jsonify(result)
 
 
-@admin_bp.route("/zones")
-def api_zones():
+@admin_bp.route("/zones-list")
+@token_required
+def api_zones(current_user):
     """Get all unsafe zones."""
     zones = list(mongo.unsafe_zones.find({"is_active": True}).sort("risk_level", -1))
     result = []
@@ -190,8 +196,9 @@ def api_zones():
     return jsonify(result)
 
 
-@admin_bp.route("/users")
-def api_users():
+@admin_bp.route("/users-list")
+@token_required
+def api_users(current_user):
     """Get all registered users."""
     users = list(
         mongo.users.find(

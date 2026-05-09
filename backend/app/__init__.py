@@ -25,8 +25,8 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # ── Enable CORS (so Flutter app can call our API) ──
-    CORS(app)
+    # ── Enable CORS for all API routes ──
+    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
     # ── Connect to MongoDB ──
     import certifi

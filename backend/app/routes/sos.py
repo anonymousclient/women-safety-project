@@ -114,7 +114,40 @@ def resolve_sos(current_user, alert_id):
     # Clear any live location tracking for this user
     clear_live_location(str(current_user["_id"]))
 
-    return jsonify({"message": "SOS alert resolved"}), 200
+    return jsonify({"message": "SOS resolved"}), 200
+
+
+@sos_bp.route("/nearby-alerts", methods=["GET"])
+@token_required
+def get_nearby_alerts(current_user):
+    """Get active SOS alerts within 2km of the user."""
+    lat = request.args.get("lat", type=float)
+    lng = request.args.get("lng", type=float)
+    
+    if lat is None or lng is None:
+        return jsonify({"error": "lat and lng are required"}), 400
+
+    alerts = list(mongo.sos_alerts.find({
+        "status": "active",
+        "trigger_location": {
+            "$near": {
+                "$geometry": {"type": "Point", "coordinates": [lng, lat]},
+                "$maxDistance": 2000
+            }
+        }
+    }).sort("triggered_at", -1))
+    
+    result = []
+    for a in alerts:
+        result.append({
+            "id": str(a["_id"]),
+            "type": "Emergency SOS",
+            "time": a["triggered_at"].isoformat(),
+            "address": a.get("trigger_address", "Nearby location"),
+            "severity": "critical"
+        })
+        
+    return jsonify(result), 200
 
 
 @sos_bp.route("/active", methods=["GET"])
