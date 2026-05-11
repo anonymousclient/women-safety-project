@@ -108,10 +108,20 @@ def _ensure_indexes(db):
 def _init_firebase(app):
     """Initialize Firebase Admin SDK if credentials are configured."""
     cred_path = app.config.get("FIREBASE_CREDENTIALS")
+    
     if not cred_path:
         app.logger.warning(
-            "FIREBASE_CREDENTIALS not set — Firebase features disabled. "
-            "Push notifications and realtime DB will be mocked."
+            "FIREBASE_CREDENTIALS environment variable not set. "
+            "Firebase features will be disabled (mock mode)."
+        )
+        return
+
+    # Check if the credentials file actually exists on the server
+    if not os.path.exists(cred_path):
+        app.logger.warning(
+            f"Firebase credentials file NOT FOUND at: {cred_path}. "
+            "Skipping Firebase initialization gracefully to prevent crash. "
+            "Push notifications and Realtime DB will be mocked."
         )
         return
 
@@ -119,10 +129,10 @@ def _init_firebase(app):
         import firebase_admin
         from firebase_admin import credentials
 
-        # Only initialize if not already done
+        # Only initialize if not already done (singleton pattern)
         if not firebase_admin._apps:
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
-            app.logger.info("Firebase initialized successfully.")
+            app.logger.info("Firebase Admin SDK initialized successfully.")
     except Exception as e:
         app.logger.error(f"Firebase initialization failed: {e}")
